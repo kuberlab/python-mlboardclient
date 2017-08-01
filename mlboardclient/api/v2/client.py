@@ -7,7 +7,7 @@ from mlboardclient.api.v2 import tasks
 from mlboardclient.api.v2 import apps
 
 
-DEFAULT_BASE_URL = 'mlboard-v2.kuberlab:8082/api/v2'
+DEFAULT_BASE_URL = 'http://mlboard-v2.kuberlab:8082/api/v2'
 
 
 class Client(object):

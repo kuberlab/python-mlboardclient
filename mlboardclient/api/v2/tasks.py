@@ -57,9 +57,6 @@ class Task(base.Resource):
 
     @build_aware
     def refresh(self):
-        # if not hasattr(self, 'build'):
-        #     raise exc.MlboardClientException('Task has no build yet')
-
         task = self.manager.get(self.app, self.name, self.build)
         return self._update_attrs(task)
 

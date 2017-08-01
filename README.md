@@ -9,9 +9,17 @@ Python lib for interacting ml-board component.
 
     from mlboardclient.api import client
     
-    ml = client.Client()
-    
+    # Default url is http://mlboard-v2.kuberlab:8082/api/v2
+    ml = client.Client('http://localhost:8082/api/v2')
     apps = ml.apps.list()
     
-    # Get app config
-    print(apps[0].config)
+    app = apps[0]
+    # Get tasks from config
+    app.tasks
+    [<Task name=model build=None status=undefined>]
+    
+    task = app.tasks[0]
+    
+    # Run & wait task
+    task.run()
+    <Task name=model build=4 status=Succeeded>

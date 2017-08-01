@@ -17,6 +17,10 @@ class MlboardClientException(Exception):
             '%s: %s' % (self.code, self.message))
 
 
+class TimeoutError(MlboardClientException):
+    message = "The execution is timed out"
+
+
 class IllegalArgumentException(MlboardClientException):
     message = "IllegalArgumentException occurred"
     code = "ILLEGAL_ARGUMENT_EXCEPTION"

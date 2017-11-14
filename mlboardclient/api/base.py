@@ -123,7 +123,7 @@ class ResourceManager(object):
     def _raise_api_exception(self, resp):
         try:
             error_data = (resp.headers.get("Server-Error-Message", None) or
-                          get_json(resp).get("faultstring"))
+                          get_json(resp).get("message"))
         except ValueError:
             error_data = resp.content
         raise APIException(error_code=resp.status_code,

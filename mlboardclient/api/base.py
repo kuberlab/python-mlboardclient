@@ -120,7 +120,8 @@ class ResourceManager(object):
     def _plurify_resource_name(self):
         return self.resource_class.resource_name + 's'
 
-    def _raise_api_exception(self, resp):
+    @staticmethod
+    def _raise_api_exception(resp):
         try:
             error_data = (resp.headers.get("Server-Error-Message", None) or
                           get_json(resp).get("message"))

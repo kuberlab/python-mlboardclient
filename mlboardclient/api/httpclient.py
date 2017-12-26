@@ -75,6 +75,14 @@ class HTTPClient(object):
                                        data=body, **options)
 
     @log_request
+    def post_file(self, url, form_data, filename, file_or_data):
+        return self.crud_provider.post(
+            self.base_url + url,
+            data=form_data,
+            files={'file': (filename, file_or_data)}
+        )
+
+    @log_request
     def put(self, url, body, headers=None):
         options = self._get_request_options('put', headers)
 

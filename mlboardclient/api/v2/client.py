@@ -70,10 +70,13 @@ class Client(object):
 
         stream = utils.stream_targz(path)
 
-        self.http_client.crud_provider.post(
+        resp = self.http_client.crud_provider.post(
             url,
             # data=form_data,
             files={'file': ('%s.tar.gz' % model_name, stream)}
         )
 
         self.keys.delete(key.key_id)
+
+        if resp.status_code >= 400:
+            raise RuntimeError('%s: %s', resp.status_code, resp.content)

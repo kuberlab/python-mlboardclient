@@ -79,4 +79,4 @@ class Client(object):
         self.keys.delete(key.key_id)
 
         if resp.status_code >= 400:
-            self.apps._raise_api_exception(resp)
+            raise RuntimeError('%s: %s' % (resp.status_code, resp.content))

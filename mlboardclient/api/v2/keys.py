@@ -12,6 +12,7 @@ class KeysManager(base.ResourceManager):
     def create(self):
         resp = self.http_client.post(
             '/keys',
+            '{}',
             headers={'content-type': 'application/json'}
         )
 

@@ -73,7 +73,7 @@ class Client(object):
         resp = self.http_client.crud_provider.post(
             url,
             # data=form_data,
-            files={'file': ('%s.tar.gz' % model_name, stream)}
+            files={'model': ('%s.tar.gz' % model_name, stream)}
         )
 
         self.keys.delete(key.key_id)

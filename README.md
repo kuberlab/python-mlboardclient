@@ -14,7 +14,8 @@ pip install 'git+https://github.com/kuberlab/python-mlboardclient.git'
 from mlboardclient.api import client
 
 # Default url is http://mlboard-v2.kuberlab:8082/api/v2
-ml = client.Client('http://localhost:8082/api/v2')
+# No need to pass any url if instantiate client from ml-project (Jupyter/Task)
+ml = client.Client()
 apps = ml.apps.list()
 [<mlboardclient.api.v2.apps.App object at 0x7f0b554b5f90>]
 

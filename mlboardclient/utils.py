@@ -99,12 +99,15 @@ def timeout(seconds=10, error_message=os.strerror(errno.ETIME)):
 
 def stream_targz(path):
     if not os.path.exists(path):
-        raise RuntimeError('%s: No such directory' % path)
+        raise RuntimeError('%s: No such file or directory' % path)
 
-    dirname = os.path.dirname(path)
-    basename = os.path.basename(path)
+    if os.path.isdir(path):
+        dirname = os.path.dirname(path)
+        basename = os.path.basename(path)
 
-    cmd = ['tar', 'czf', '-', basename]
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, cwd=dirname)
+        cmd = ['tar', 'czf', '-', basename]
+        p = subprocess.Popen(cmd, stdout=subprocess.PIPE, cwd=dirname)
 
-    return p.stdout
+        return p.stdout
+    else:
+        return open(path, 'rb')

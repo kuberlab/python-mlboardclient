@@ -38,7 +38,7 @@ class Client(object):
         self.keys = keys.KeysManager(http_client)
 
     def model_upload(self, model_name, version, path,
-                     workspace=None, project_name=None):
+                     workspace=None, project_name=None, auto_create=True):
         cloud_dealer_url = os.environ.get('CLOUD_DEALER_URL')
         if not cloud_dealer_url:
             raise RuntimeError(
@@ -62,9 +62,9 @@ class Client(object):
         # versions/{version}/upload?secret=xxx&mlapp=name
         url = (
             '%s/workspace/%s/mlmodels/%s/versions/'
-            '%s/upload?secret=%s&mlapp=%s' % (
+            '%s/upload?secret=%s&mlapp=%s&create=%s' % (
                 cloud_dealer_url, workspace, model_name,
-                version, key.key_id, project_name
+                version, key.key_id, project_name, str(auto_create).lower()
             )
         )
 

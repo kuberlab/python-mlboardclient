@@ -24,8 +24,10 @@ class Task(base.Resource):
     def __init__(self, manager, data):
         super(Task, self).__init__(manager, data)
         if hasattr(self, 'config'):
-            self.config_raw = self.config
-            self.config = yaml.safe_load(self.config_raw)
+            self.config = self.config
+            self.config_raw = yaml.safe_dump(
+                self.config, default_flow_style=False
+            )
 
         if not hasattr(self, 'status'):
             self.status = 'undefined'

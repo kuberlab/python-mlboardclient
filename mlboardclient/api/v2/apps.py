@@ -1,6 +1,6 @@
 
+import copy
 import six
-import yaml
 
 from mlboardclient.api import base
 from mlboardclient.api.v2 import tasks
@@ -15,9 +15,8 @@ class App(base.Resource):
 
     def __init__(self, manager, data):
         super(App, self).__init__(manager, data)
-        if hasattr(self, 'config'):
-            self.config_raw = self.config
-            self.config = yaml.safe_load(self.config_raw)
+        if hasattr(self, 'configuration'):
+            self.config = self.configuration
 
         self._task_manager = tasks.TaskManager(self.manager.http_client)
 
@@ -30,7 +29,7 @@ class App(base.Resource):
             task_dict = {
                 'name': t['name'],
                 'app': self.name,
-                'config': yaml.dump(t)
+                'config': copy.deepcopy(t)
             }
             res.append(
                 self._task_manager.resource_class(

@@ -31,6 +31,9 @@ class App(base.Resource):
                 'app': self.name,
                 'config': copy.deepcopy(t)
             }
+            task_dict['config']['revision'] = copy.deepcopy(
+                self.config.get('revision')
+            )
             res.append(
                 self._task_manager.resource_class(
                     self._task_manager, task_dict

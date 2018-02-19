@@ -78,7 +78,7 @@ class Task(base.Resource):
         return self.wait()
 
     def logs(self):
-        self.manager.logs(self.app, self.name, self.build)
+        return self.manager.logs(self.app, self.name, self.build)
 
 
 class TaskManager(base.ResourceManager):

@@ -62,20 +62,20 @@ class Task(base.Resource):
         task = self.manager.get(self.app, self.name, self.build)
         return self._update_attrs(task)
 
-    def wait(self, timeout=1800):
+    def wait(self, timeout=1800, delay=3):
         @utils.timeout(seconds=timeout)
         @build_aware
         def _wait(self):
             while not self.completed:
-                time.sleep(2)
+                time.sleep(delay)
                 self.refresh()
             return self
 
         return _wait(self)
 
-    def run(self):
+    def run(self, timeout=1800, delay=3):
         self.start()
-        return self.wait()
+        return self.wait(timeout=timeout, delay=delay)
 
     def logs(self):
         return self.manager.logs(self.app, self.name, self.build)

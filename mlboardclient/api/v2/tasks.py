@@ -1,4 +1,4 @@
-
+import re
 import six
 import time
 import yaml
@@ -80,6 +80,50 @@ class Task(base.Resource):
     def logs(self):
         return self.manager.logs(self.app, self.name, self.build)
 
+    def apply_env(self, envs):
+        """Adds/Modifies environment variables for task resources.
+
+        envs parameter must be a list containing env var specs as following:
+          ENV_VAR=VALUE
+
+        Example:
+
+        task.apply_env(['MY_VAR=MY-VAL', 'SOME_VAR=expression=22'])
+
+        In the example above variable 'SOME_VAR'
+        will be assigned value 'expression=22'.
+
+        :param envs: list of env variables spec.
+        """
+        apply_env(self, envs)
+
+    def apply_resource_override(self, resource_overrides):
+        """Overrides resource-specific config values for given task.
+
+        Resource override spec format:
+          <resource-name>.<param>=<value>
+          <resource-name>.<key>.<nested-key>=<value>
+
+        It is allowed to pass '*' as resource name: override will be applied
+        to all resources:
+          *.<key>=<value>
+
+        Examples:
+
+          task.apply_resource_overrides(
+            [
+              '*.resources.requests.cpu=1000m',
+              '*.resources.requests.memory=1Gi'
+            ]
+          )
+
+          task.apply_resource_overrides(['worker.replicas=3'])
+
+        :param resource_overrides: list of resource override spec.
+        :type resource_overrides: list
+        """
+        apply_resource_overrides(self, resource_overrides)
+
 
 class TaskManager(base.ResourceManager):
     resource_class = Task
@@ -120,3 +164,124 @@ class TaskManager(base.ResourceManager):
 
         resp = self.http_client.get(url)
         return base.extract_json(resp, None)
+
+
+def apply_env(task, envs):
+    """Adds/Modifies environment variables for task resources.
+
+    envs parameter must be a list containing env var specs as following:
+      ENV_VAR=VALUE
+
+    Example:
+
+    apply_env(task, ['MY_VAR=MY-VAL', 'SOME_VAR=expression=22'])
+
+    In the example above variable 'SOME_VAR'
+    will be assigned value 'expression=22'.
+
+    :param task: Task object to modify.
+    :type task: Task
+    :param envs: list of env variables spec.
+    """
+    if not envs:
+        return
+
+    env_vars = {}
+    for e in envs:
+        name_value = e.split('=')
+        if len(name_value) < 2:
+            raise RuntimeError(
+                'Invalid env override spec: %s' % e
+            )
+
+        name = name_value[0]
+        value = '='.join(name_value[1:])
+        env_vars[name] = value
+
+    for r in task.config['resources']:
+        env_override = env_vars.copy()
+        for e in r.get('env', []):
+            if e['name'] in env_override:
+                e['value'] = env_override.pop(e['name'])
+
+        if not r.get('env'):
+            r['env'] = []
+
+        for n, v in env_override.items():
+            r['env'].append({'name': n, 'value': v})
+
+
+def apply_resource_overrides(task, resource_overrides):
+    """Overrides resource-specific config values for given task.
+
+    Resource override spec format:
+      <resource-name>.<param>=<value>
+      <resource-name>.<key>.<nested-key>=<value>
+
+    It is allowed to pass '*' as resource name: override will be applied
+    to all resources:
+      *.<key>=<value>
+
+    Examples:
+      apply_resource_overrides(
+        task, [
+          '*.resources.requests.cpu=1000m',
+          '*.resources.requests.memory=1Gi'
+        ]
+      )
+
+      apply_resource_overrides(task, ['worker.replicas=3'])
+
+    :param task: Task object to modify.
+    :type task: Task
+    :param resource_overrides: list of resource override spec.
+    :type resource_overrides: list
+    """
+    if not resource_overrides:
+        return
+
+    cfg = task.config
+    for override in resource_overrides:
+        splitted = override.split('=')
+        if len(splitted) < 2:
+            raise RuntimeError(
+                'Invalid resource override spec: %s' % override
+            )
+        path = splitted[0]
+        value = '='.join(splitted[1:])
+
+        splitted = path.split('.')
+        if len(splitted) < 2:
+            raise RuntimeError(
+                'Invalid resource override path: %s' % path
+            )
+        resource = splitted[0]
+        path = splitted[1:-1]
+
+        for r in cfg['resources']:
+            if r['name'] != resource and resource != '*':
+                continue
+            if r['name'] == resource or resource == '*':
+                to_replace = r
+                for p in path:
+                    inner = to_replace.get(p)
+                    if inner is None:
+                        to_replace[p] = {}
+                    to_replace = to_replace[p]
+
+                v = to_replace.get(splitted[-1])
+                if not v:
+                    if value.isdigit():
+                        to_replace[splitted[-1]] = int(value)
+                    elif re.match("^[\.0-9]+$", value):
+                        to_replace[splitted[-1]] = float(value)
+                    else:
+                        to_replace[splitted[-1]] = value
+                    break
+
+                if isinstance(to_replace[splitted[-1]], int):
+                    to_replace[splitted[-1]] = int(value)
+                elif isinstance(to_replace[splitted[-1]], float):
+                    to_replace[splitted[-1]] = float(value)
+                else:
+                    to_replace[splitted[-1]] = value

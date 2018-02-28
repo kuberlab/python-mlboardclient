@@ -19,6 +19,32 @@ def build_aware(func):
 
 
 class Task(base.Resource):
+    """Task resource class.
+
+    config field contains task configuration including resources config.
+    Task config can be rewritten before start using:
+
+     - apply_env()
+     - apply_resource_overrides()
+
+    See the corresponding method doc for help.
+    Also it is possible to pass additional command arguments as dict:
+
+    >>> task.config['resources'][0]['command']
+    u'python my_script.py'
+    >>> task.config['resources'][0]['args'] = {'var1': 'val', 'batch-size': 23, 'test_arg': 12.2}
+    >>> task.start()
+    >>> task.config['resources'][0]['command']
+    u'python my_script.py --batch-size 23 --test_arg 12.2 --var1 val'
+
+    Resource args can be also a string:
+    >>> task.config['resources'][0]['command']
+    u'python my_script.py'
+    >>> task.config['resources'][0]['args'] = '--my-super-arg 42; echo "Done!"'
+    >>> task.start()
+    >>> task.config['resources'][0]['command']
+    u'python my_script.py --my-super-arg 42; echo "Done!"'
+    """
     resource_name = 'Task'
 
     def __init__(self, manager, data):
@@ -138,12 +164,29 @@ class TaskManager(base.ResourceManager):
 
         return self._get('/apps/%s/tasks/%s/%s' % (app, task, build))
 
+    @staticmethod
+    def _preprocess_config(config):
+        for r in config['resources']:
+            if not r.get('args'):
+                continue
+
+            args = r['args']
+            if isinstance(args, six.string_types):
+                r['command'] = '%s %s' % (r.get('command', ''), r['args'])
+            elif isinstance(args, dict):
+                args_str = ' '.join(
+                    ['--%s %s' % (k, v) for k, v in args.items()]
+                )
+                r['command'] = '%s %s' % (r.get('command', ''), args_str)
+            del r['args']
+
     def create(self, app, config):
         self._ensure_not_empty(app=app)
 
         # If the specified definition is actually a file, read in the
         # definition file
         if isinstance(config, dict):
+            self._preprocess_config(config)
             definition = yaml.dump(config)
         else:
             definition = utils.get_contents_if_file(config)

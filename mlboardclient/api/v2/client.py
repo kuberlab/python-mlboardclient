@@ -5,6 +5,7 @@ import six
 
 from mlboardclient.api import httpclient
 from mlboardclient.api.v2 import apps
+from mlboardclient.api.v2 import datasets
 from mlboardclient.api.v2 import keys
 from mlboardclient.api.v2 import servings
 from mlboardclient.api.v2 import tasks
@@ -36,6 +37,7 @@ class Client(object):
         self.servings = servings.ServingManager(http_client)
         self.apps = apps.AppsManager(http_client)
         self.keys = keys.KeysManager(http_client)
+        self.datasets = datasets.DatasetsManager(http_client)
 
     def model_upload(self, model_name, version, path,
                      workspace=None, project_name=None, auto_create=True):

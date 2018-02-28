@@ -1,15 +1,19 @@
 import errno
 import functools
 import json
+import logging
 import os
 import signal
-import subprocess
 import yaml
 
 from six.moves.urllib import parse
 from six.moves.urllib import request
+import subprocess32 as subprocess
 
 from mlboardclient import exceptions
+
+
+LOG = logging.getLogger(__name__)
 
 
 def do_action_on_many(action, resources, success_msg, error_msg):
@@ -97,6 +101,33 @@ def timeout(seconds=10, error_message=os.strerror(errno.ETIME)):
         return functools.wraps(func)(wrapper)
 
     return decorator
+
+
+def execute_command(cmd, dirname=None, timeout=300,
+                    stdout_control=True):
+    msg = 'Execute command'
+    if dirname:
+        msg += ' in DIR=%s' % dirname
+
+    LOG.debug('%s: %s' % (msg, ' '.join(cmd)))
+
+    if not dirname:
+        dirname = os.getcwd()
+
+    if stdout_control:
+        out = subprocess.PIPE
+    else:
+        out = None
+
+    p = subprocess.Popen(
+        cmd,
+        stdout=out,
+        stderr=subprocess.PIPE,
+        cwd=dirname
+    )
+
+    stdout, stderr = p.communicate(timeout=timeout)
+    return stdout, stderr, p.returncode
 
 
 def stream_targz(path):

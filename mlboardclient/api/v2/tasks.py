@@ -32,7 +32,9 @@ class Task(base.Resource):
 
     >>> task.config['resources'][0]['command']
     u'python my_script.py'
-    >>> task.config['resources'][0]['args'] = {'var1': 'val', 'batch-size': 23, 'test_arg': 12.2}
+    >>> task.config['resources'][0]['args'] = {
+    ...   'var1': 'val', 'batch-size': 23, 'test_arg': 12.2
+    ... }
     >>> task.start()
     >>> task.config['resources'][0]['command']
     u'python my_script.py --batch-size 23 --test_arg 12.2 --var1 val'

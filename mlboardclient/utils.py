@@ -4,13 +4,18 @@ import json
 import logging
 import os
 import signal
-import yaml
 
+import six
 from six.moves.urllib import parse
 from six.moves.urllib import request
-import subprocess32 as subprocess
+import yaml
 
 from mlboardclient import exceptions
+
+if six.PY2:
+    import subprocess32 as subprocess
+else:
+    import subprocess
 
 
 LOG = logging.getLogger(__name__)

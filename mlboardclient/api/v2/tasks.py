@@ -2,7 +2,6 @@ import re
 import six
 import time
 import yaml
-from copy import deepcopy
 
 from mlboardclient.api import base
 from mlboardclient import exceptions as exc
@@ -159,7 +158,7 @@ class TaskList(list):
     def get(self, task_name):
         for t in self:
             if t.name == task_name:
-                return deepcopy(t)
+                return Task(t.manager,t.to_dict())
 
 
 class TaskManager(base.ResourceManager):

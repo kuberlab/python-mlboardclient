@@ -2,10 +2,12 @@ import re
 import six
 import time
 import yaml
+from copy import deepcopy
 
 from mlboardclient.api import base
 from mlboardclient import exceptions as exc
 from mlboardclient import utils
+
 
 urlparse = six.moves.urllib.parse
 
@@ -157,7 +159,7 @@ class TaskList(list):
     def get(self, task_name):
         for t in self:
             if t.name == task_name:
-                return t
+                return deepcopy(t)
 
 
 class TaskManager(base.ResourceManager):

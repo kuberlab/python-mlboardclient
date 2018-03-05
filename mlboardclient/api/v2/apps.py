@@ -38,7 +38,7 @@ class App(base.Resource):
     def tasks(self):
         tasks_from_config = self.config['spec']['tasks']
 
-        res = []
+        res = tasks.TaskList()
         for t in tasks_from_config:
             res.append(self._task_from_config(t))
 

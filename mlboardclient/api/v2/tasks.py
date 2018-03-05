@@ -153,6 +153,13 @@ class Task(base.Resource):
         apply_resource_overrides(self, resource_overrides)
 
 
+class TaskList(list):
+    def get(self, task_name):
+        for t in self:
+            if t.name == task_name:
+                return t
+
+
 class TaskManager(base.ResourceManager):
     resource_class = Task
 

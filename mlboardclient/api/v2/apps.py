@@ -1,3 +1,4 @@
+import os
 
 import copy
 import six
@@ -20,27 +21,36 @@ class App(base.Resource):
 
         self._task_manager = tasks.TaskManager(self.manager.http_client)
 
+    def _task_from_config(self, task_raw_dict):
+        task_dict = {
+            'name': task_raw_dict['name'],
+            'app': self.name,
+            'config': copy.deepcopy(task_raw_dict)
+        }
+        task_dict['config']['revision'] = copy.deepcopy(
+            self.config.get('revision')
+        )
+        return self._task_manager.resource_class(
+            self._task_manager, task_dict
+        )
+
     @property
     def tasks(self):
         tasks_from_config = self.config['spec']['tasks']
 
         res = []
         for t in tasks_from_config:
-            task_dict = {
-                'name': t['name'],
-                'app': self.name,
-                'config': copy.deepcopy(t)
-            }
-            task_dict['config']['revision'] = copy.deepcopy(
-                self.config.get('revision')
-            )
-            res.append(
-                self._task_manager.resource_class(
-                    self._task_manager, task_dict
-                )
-            )
+            res.append(self._task_from_config(t))
 
         return res
+
+    def task(self, task_name):
+        tasks_from_config = self.config['spec']['tasks']
+        for t in tasks_from_config:
+            if t['name'] == task_name:
+                return self._task_from_config(t)
+
+        return None
 
     def get_tasks(self):
         return self._task_manager.list(self.name)
@@ -73,7 +83,16 @@ class AppsManager(base.ResourceManager):
     def list(self):
         return self._list('/apps', response_key='apps')
 
-    def get(self, name):
+    def get(self, name=None):
+        # if name is empty it means code is
+        # running inside kuberlab ML-task container
+        # and will be picked up from env vars.
+        if not name:
+            project = os.environ.get('PROJECT_NAME')
+            workspace = os.environ.get('WORKSPACE_ID')
+            if project and workspace:
+                name = workspace + '-' + project
+
         self._ensure_not_empty(name=name)
 
         return self._get('/apps/%s' % name)

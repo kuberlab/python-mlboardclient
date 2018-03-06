@@ -158,7 +158,7 @@ class TaskList(list):
     def get(self, task_name):
         for t in self:
             if t.name == task_name:
-                return Task(t.manager,t.to_dict())
+                return Task(t.manager, t.to_dict())
 
 
 class TaskManager(base.ResourceManager):

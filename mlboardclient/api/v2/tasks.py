@@ -105,7 +105,7 @@ class Task(base.Resource):
         return _wait(self)
 
     def run(self, timeout=1800, delay=3, comment=None):
-        self.start(comment)
+        self.start(comment=comment)
         return self.wait(timeout=timeout, delay=delay)
 
     def logs(self):

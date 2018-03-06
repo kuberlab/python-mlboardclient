@@ -177,7 +177,8 @@ class TaskManager(base.ResourceManager):
         return self._get('/apps/%s/tasks/%s/%s' % (app, task, build))
 
     @staticmethod
-    def _fill_revision_data(config):
+    def _preprocess_config(config):
+
         #setup experiment from parent task
         experiment = utils.env_value('KUBERLAB_EXPERIMENT','master')
         author = utils.env_value('KUBERLAB_AUTHOR','mlboard.client')
@@ -194,11 +195,6 @@ class TaskManager(base.ResourceManager):
                               'author_name':author_name,
                               'author_email':author_email,
                               'comment':comment}
-
-    @staticmethod
-    def _preprocess_config(config):
-
-        _fill_revision_data(config)
 
         for r in config['resources']:
             if not r.get('args'):

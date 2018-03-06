@@ -149,3 +149,10 @@ def stream_targz(path):
         return p.stdout
     else:
         return open(path, 'rb')
+
+def env_value(name,default_value=None):
+    val = os.environ.get(name)
+    if val is None or val=='':
+        return default_value
+    else:
+        return val

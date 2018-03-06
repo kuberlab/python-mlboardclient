@@ -20,12 +20,15 @@ class DatasetsManager(base.ResourceManager):
         print(out)
 
     def push(self, workspace, name, version, from_dir,
-             create=False, force=False, chunk_size=None, concurrency=None):
+             create=False, publish=False, force=False,
+             chunk_size=None, concurrency=None):
         cmd = ['push', workspace, '%s:%s' % (name, version)]
         if force:
             cmd += ['--force']
         if create:
             cmd += ['--create']
+        if publish:
+            cmd += ['--publish']
         if chunk_size:
             cmd += ['--chunk-size', str(chunk_size)]
         if concurrency:

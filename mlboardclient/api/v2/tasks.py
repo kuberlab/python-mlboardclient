@@ -180,9 +180,9 @@ class TaskManager(base.ResourceManager):
     def _fill_revision_data(config):
         #setup experiment from parent task
         experiment = utils.env_value('KUBERLAB_EXPERIMENT','master')
-        author = utils.env_value('author','mlboard.client')
-        author_email = utils.env_value('author_email','mlboard.client@kuberlab.com')
-        author_name = utils.env_value('author_name','MLBoard Client')
+        author = utils.env_value('KUBERLAB_AUTHOR','mlboard.client')
+        author_email = utils.env_value('KUBERLAB_AUTHOR_EMAIL','mlboard.client@kuberlab.com')
+        author_name = utils.env_value('KUBERLAB_AUTHOR_NAME','MLBoard Client')
         if not config.get('exec_commit'):
             comment = config.get('exec_comment')
             del config['exec_comment']

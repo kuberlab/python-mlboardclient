@@ -150,9 +150,10 @@ def stream_targz(path):
     else:
         return open(path, 'rb')
 
-def env_value(name,default_value=None):
+
+def env_value(name, default_value=None):
     val = os.environ.get(name)
-    if val is None or val=='':
+    if not val:
         return default_value
     else:
         return val

@@ -82,7 +82,7 @@ class Task(base.Resource):
             self.completed = new_task.completed
         return self
 
-    def start(self,comment=None):
+    def start(self, comment=None):
         if comment is not None:
             self.config['exec_comment'] = comment
         task = self.manager.create(self.app, self.config)
@@ -179,22 +179,28 @@ class TaskManager(base.ResourceManager):
     @staticmethod
     def _preprocess_config(config):
 
-        #setup experiment from parent task
-        experiment = utils.env_value('KUBERLAB_EXPERIMENT','master')
-        author = utils.env_value('KUBERLAB_AUTHOR','mlboard.client')
-        author_email = utils.env_value('KUBERLAB_AUTHOR_EMAIL','mlboard.client@kuberlab.com')
-        author_name = utils.env_value('KUBERLAB_AUTHOR_NAME','MLBoard Client')
+        # setup experiment from parent task
+        experiment = utils.env_value('KUBERLAB_EXPERIMENT', 'master')
+        author = utils.env_value('KUBERLAB_AUTHOR', 'mlboard.client')
+        author_email = utils.env_value(
+            'KUBERLAB_AUTHOR_EMAIL', 'mlboard.client@kuberlab.com'
+        )
+        author_name = utils.env_value(
+            'KUBERLAB_AUTHOR_NAME', 'MLBoard Client'
+        )
         if config.get('exec_comment') is not None:
             comment = config.get('exec_comment')
             del config['exec_comment']
         else:
             comment = 'Execute task from mlboard client'
 
-        config['revision'] = {'branch':experiment,
-                              'author':author,
-                              'author_name':author_name,
-                              'author_email':author_email,
-                              'comment':comment}
+        config['revision'] = {
+            'branch': experiment,
+            'author': author,
+            'author_name': author_name,
+            'author_email': author_email,
+            'comment': comment
+        }
 
         for r in config['resources']:
             if not r.get('args'):

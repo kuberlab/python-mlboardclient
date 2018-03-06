@@ -184,7 +184,7 @@ class TaskManager(base.ResourceManager):
         author = utils.env_value('KUBERLAB_AUTHOR','mlboard.client')
         author_email = utils.env_value('KUBERLAB_AUTHOR_EMAIL','mlboard.client@kuberlab.com')
         author_name = utils.env_value('KUBERLAB_AUTHOR_NAME','MLBoard Client')
-        if not config.get('exec_comment'):
+        if config.get('exec_comment'):
             comment = config.get('exec_comment')
             del config['exec_comment']
         else:

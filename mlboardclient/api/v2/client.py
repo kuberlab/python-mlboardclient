@@ -63,7 +63,7 @@ class Client(object):
         # POST /api/v0.2/workspace/{workspace}/mlmodels/{mlmodel}/
         # versions/{version}/upload?secret=xxx&mlapp=name
         url = (
-            '%s/workspace/%s/mlmodels/%s/versions/'
+            '%s/workspace/%s/mlmodel/%s/versions/'
             '%s/upload?secret=%s&mlapp=%s&create=%s' % (
                 cloud_dealer_url, workspace, model_name,
                 version, key.key_id, project_name, str(auto_create).lower()

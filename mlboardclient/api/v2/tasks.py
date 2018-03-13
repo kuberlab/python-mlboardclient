@@ -1,4 +1,3 @@
-import copy
 import logging
 import re
 import six
@@ -117,7 +116,7 @@ class Task(base.Resource):
         return self.wait(timeout=timeout, delay=delay)
 
     def parallel_run(self, threads_num, arg_spec, comment=None):
-        """
+        """Runs current task multiple times with args per resource.
 
         :param threads_num: Number of parallel tasks performed simultaneously
         :param arg_spec: Iterator containing task resource args, e.g:

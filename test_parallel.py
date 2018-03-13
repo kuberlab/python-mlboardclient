@@ -8,11 +8,11 @@ task = app.task('model')
 
 task.resource('worker')['args'] = {'common': 'yes'}
 
+
 def args(num):
-  for i in range(num):
-    yield {'worker': {'arg': i}}
+    for i in range(num):
+        yield {'worker': {'arg': i}}
 
 
 logs = task.parallel_run(3, args(7))
 print(json.dumps(list(logs), indent=2))
-

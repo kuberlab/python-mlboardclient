@@ -1,4 +1,4 @@
-
+import os
 import six
 
 from mlboardclient.api import base
@@ -32,14 +32,56 @@ class ServingManager(base.ResourceManager):
 
         return self.resource_class(self, base.extract_json(resp, None))
 
-    def list(self, app, task, build):
-        self._ensure_not_empty(app=app, task=task, build=build)
+    def list(self, app, task):
+        self._ensure_not_empty(app=app, task=task)
 
         return self._list(
-            '/apps/%s/tasks/%s/%s/servings' % (app, task, build)
+            '/apps/%s/tasks/%s/servings' % (app, task)
         )
 
     def delete(self, app, task, build):
         self._ensure_not_empty(app=app, task=task, build=build)
 
         self._delete('/apps/%s/tasks/%s/%s/serve' % (app, task, build))
+
+    def call(self, name, data, port=None, namespace=None):
+        """Call specific serving with given data.
+
+        :param name: Serving name
+        :param port: Serving port (int)
+        :param data: Should be in the form:
+        {
+          "features": [  # Required if not inputs
+            {"x": {"Float": 55}},
+            {"x": {"Float": 40}}
+          ],
+          "inputs": { # Required if not features
+            "input_key": {"dtype": 7, "data": "string"}
+          },
+          "out_filter": ["string"], # Optional
+          "out_mime_type": "image/png", # Optional
+        }
+        :param namespace: kubernetes namespace
+        :return:
+        """
+        url = '/tfproxy'
+        if not namespace:
+            # Try to get namespace from env.
+            ws_name = os.environ.get('WORKSPACE_NAME')
+            ws_id = os.environ.get('WORKSPACE_ID')
+            namespace = '%s-%s' % (ws_id, ws_name) if ws_id else None
+
+        if not namespace:
+            raise RuntimeError('namespace parameter required.')
+        if not port:
+            port = '9000'
+
+        serving_addr = '%s.%s' % (name, namespace)
+
+        resp = self.http_client.post(
+            url,
+            data,
+            headers={'Proxy_addr': serving_addr, 'Proxy_port': port}
+        )
+        # Need extract json?
+        return resp

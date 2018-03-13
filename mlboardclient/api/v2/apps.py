@@ -21,6 +21,12 @@ class App(base.Resource):
 
         self._task_manager = tasks.TaskManager(self.manager.http_client)
 
+    def __str__(self):
+        return '<App name=%s revision=%s>' % (self.name, self.git_revision)
+
+    def __repr__(self):
+        return self.__str__()
+
     def _task_from_config(self, task_raw_dict):
         task_dict = {
             'name': task_raw_dict['name'],

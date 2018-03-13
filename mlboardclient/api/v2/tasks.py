@@ -1,3 +1,5 @@
+import copy
+import logging
 import re
 import six
 import time
@@ -9,6 +11,9 @@ from mlboardclient import utils
 
 
 urlparse = six.moves.urllib.parse
+
+
+LOG = logging.getLogger(__name__)
 
 
 def build_aware(func):
@@ -61,6 +66,9 @@ class Task(base.Resource):
         if not hasattr(self, 'status'):
             self.status = 'undefined'
 
+    def copy(self):
+        return Task(self.manager, self.to_dict())
+
     def __str__(self):
         if not hasattr(self, 'build'):
             build = None
@@ -93,7 +101,7 @@ class Task(base.Resource):
         task = self.manager.get(self.app, self.name, self.build)
         return self._update_attrs(task)
 
-    def wait(self, timeout=1800, delay=3):
+    def wait(self, timeout=0, delay=3):
         @utils.timeout(seconds=timeout)
         @build_aware
         def _wait(self):
@@ -104,9 +112,89 @@ class Task(base.Resource):
 
         return _wait(self)
 
-    def run(self, timeout=1800, delay=3, comment=None):
+    def run(self, timeout=0, delay=3, comment=None):
         self.start(comment=comment)
         return self.wait(timeout=timeout, delay=delay)
+
+    def parallel_run(self, threads_num, arg_spec, comment=None):
+        """
+
+        :param threads_num: Number of parallel tasks performed simultaneously
+        :param arg_spec: Iterator containing task resource args, e.g:
+          [
+            {'worker': {'batch_size': 10}},
+            {'worker': {'batch_size': 5}}
+          ]
+          'worker' here is a resource name inside task.
+          'batch_size': 10 - is an argument to task command and it
+          will be converted in
+
+          --batch-size 10
+
+        :param comment: Comment to add to every task.
+        :return: generator of task logs:
+          [
+            {
+              'logs': {'master': '', '<pod-name>': ''},
+              'task': '<task-name>:<build>'
+            },
+            ...
+          ]
+        """
+        idle_builds = {}
+        builds = {}
+        completed_builds = {}
+        for i, args in enumerate(arg_spec):
+            t = self.copy()
+
+            for k, v in args.items():
+                res_args = t.resource(k).get('args', {})
+                res_args.update(v)
+                t.resource(k)['args'] = res_args
+
+                idle_builds[i] = t
+
+        num_builds = len(idle_builds)
+
+        capacity = threads_num
+
+        def start_next_build():
+            index, idle_task = idle_builds.popitem()
+            idle_task.start(comment)
+            LOG.info('Started task %s:%s' % (idle_task.name, idle_task.build))
+            builds[index] = idle_task
+
+        for _ in range(len(idle_builds)):
+            start_next_build()
+            capacity -= 1
+            if capacity < 1:
+                break
+
+        while len(completed_builds) != num_builds:
+            for i, t in builds.items():
+                t.refresh()
+                if t.completed:
+                    LOG.info(
+                        'Completed task %s:%s with status=%s'
+                        % (t.name, t.build, t.status)
+                    )
+                    completed_builds[i] = builds.pop(i)
+
+                    # Start more build if any.
+                    if len(idle_builds) > 0:
+                        start_next_build()
+
+            time.sleep(5)
+
+        return self._log_generator(completed_builds.values())
+
+    @staticmethod
+    def _log_generator(tasks):
+        for t in tasks:
+            yield {
+                'logs': t.logs(),
+                'task': '%s:%s' % (t.name, t.build)
+            }
 
     def logs(self):
         return self.manager.logs(self.app, self.name, self.build)
@@ -154,6 +242,15 @@ class Task(base.Resource):
         :type resource_overrides: list
         """
         apply_resource_overrides(self, resource_overrides)
+
+    def resource(self, name):
+        for r in self.config['resources']:
+            if r['name'] == name:
+                return r
+
+        raise RuntimeError(
+            'Resource %s in task %s not found.' % (name, self.name)
+        )
 
 
 class TaskList(list):

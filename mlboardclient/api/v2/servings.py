@@ -44,10 +44,15 @@ class ServingManager(base.ResourceManager):
 
         self._delete('/apps/%s/tasks/%s/%s/serve' % (app, task, build))
 
-    def call(self, name, data, port=None, namespace=None):
+    def call(self, serving_name, model_name, data,
+             signature=None, version=None, port=None, namespace=None):
         """Call specific serving with given data.
 
-        :param name: Serving name
+        :param serving_name: Serving name
+        :param model_name: Model name which will be used in model.spec.name
+          in tensorflow request
+        :param signature:
+        :param version: model_version
         :param port: Serving port (int)
         :param data: Should be in the form:
         {
@@ -61,10 +66,15 @@ class ServingManager(base.ResourceManager):
           "out_filter": ["string"], # Optional
           "out_mime_type": "image/png", # Optional
         }
+        "dtype" is from mlboardclient.api
         :param namespace: kubernetes namespace
         :return:
         """
-        url = '/tfproxy'
+        url = '/tfproxy/%s' % model_name
+        if signature:
+            url += '/%s' % signature
+        if version:
+            url += '/%s' % version
         if not namespace:
             # Try to get namespace from env.
             ws_name = os.environ.get('WORKSPACE_NAME')
@@ -76,7 +86,7 @@ class ServingManager(base.ResourceManager):
         if not port:
             port = '9000'
 
-        serving_addr = '%s.%s' % (name, namespace)
+        serving_addr = '%s.%s' % (serving_name, namespace)
 
         resp = self.http_client.post(
             url,

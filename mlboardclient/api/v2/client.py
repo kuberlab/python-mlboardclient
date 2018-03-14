@@ -55,7 +55,7 @@ class Client(object):
         data = json.dumps(data)
         resp = self.http_client.post('/apps/%s/tasks/%s/%s' % (app_name,task_name,build_id),
                               data,
-                              headers={'content-type': 'text/plain'})
+                              headers={'content-type': 'application/json'})
         if resp.status_code != 400:
             raise RuntimeError('%s: %s' % (resp.status_code, resp.content))
 

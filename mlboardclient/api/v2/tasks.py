@@ -185,7 +185,8 @@ class Task(base.Resource):
                 break
 
         while len(completed_builds) != num_builds:
-            for i, t in builds.items():
+            for i in list(builds):
+                t = builds[i]
                 t.refresh()
                 if t.completed:
                     LOG.info(

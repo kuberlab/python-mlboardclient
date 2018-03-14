@@ -4,6 +4,7 @@ import copy
 import six
 
 from mlboardclient.api import base
+from mlboardclient.api.v2 import servings
 from mlboardclient.api.v2 import tasks
 from mlboardclient import utils
 
@@ -20,6 +21,9 @@ class App(base.Resource):
             self.config = self.configuration
 
         self._task_manager = tasks.TaskManager(self.manager.http_client)
+        self._serving_manager = servings.ServingManager(
+            self.manager.http_client
+        )
 
     def __str__(self):
         return '<App name=%s revision=%s>' % (self.name, self.git_revision)
@@ -40,6 +44,16 @@ class App(base.Resource):
             self._task_manager, task_dict
         )
 
+    def _serving_from_config(self, serving_raw_dict):
+        serving_dict = {
+            'name': serving_raw_dict['name'],
+            'app': self.name,
+            'config': copy.deepcopy(serving_raw_dict)
+        }
+        return self._serving_manager.resource_class(
+            self._serving_manager, serving_dict
+        )
+
     @property
     def tasks(self):
         tasks_from_config = self.config['spec']['tasks']
@@ -55,6 +69,24 @@ class App(base.Resource):
         for t in tasks_from_config:
             if t['name'] == task_name:
                 return self._task_from_config(t)
+
+        return None
+
+    @property
+    def servings(self):
+        servings_from_config = self.config['spec']['serving']
+
+        res = servings.ServingList()
+        for s in servings_from_config:
+            res.append(self._serving_from_config(s))
+
+        return res
+
+    def serving(self, name='serving'):
+        servings_from_config = self.config['spec']['serving']
+        for s in servings_from_config:
+            if s['name'] == name:
+                return self._serving_from_config(s)
 
         return None
 

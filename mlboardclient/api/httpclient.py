@@ -27,6 +27,7 @@ def log_request(func):
 
 class HTTPClient(object):
     def __init__(self, base_url, **kwargs):
+        base_url = base_url.rstrip('/')
         self.base_url = base_url
         self.session = kwargs.pop('session', None)
         self.cacert = kwargs.get(CACERT)

@@ -1,5 +1,6 @@
 import os
 import six
+import yaml
 
 from mlboardclient.api import base
 from mlboardclient import utils
@@ -10,16 +11,71 @@ urlparse = six.moves.urllib.parse
 class Serving(base.Resource):
     resource_name = 'Serving'
 
+    def start(self, task_name, build):
+        self.config['taskName'] = task_name
+        self.config['build'] = build
+        serv = self.manager.create(self.app, self.config)
+        serv.config = yaml.safe_load(serv.config)
+        return serv
+
+    def stop(self):
+        task = self.config.get('taskName') or getattr(self, 'serving', '')
+        if not (task or self.config.get('build')):
+            raise RuntimeError(
+                'Serving is not pointed to any task/build.'
+                ' config["taskName"] and config["build"] must be filled.'
+            )
+
+        self.manager.delete(self.app, task, self.config['build'])
+        delattr(self, 'status')
+
+    def logs(self):
+        task = self.config.get('taskName') or getattr(self, 'serving', '')
+        if not (task or self.config.get('build')):
+            raise RuntimeError(
+                'Serving is not pointed to any task/build.'
+                ' config["taskName"] and config["build"] must be filled.'
+            )
+
+        return self.manager.logs(self.app, task, self.config['build'])
+
+
+class ServingList(list):
+    def get(self, name):
+        for s in self:
+            if s.name == name:
+                return Serving(s.manager, s.to_dict())
+
 
 class ServingManager(base.ResourceManager):
     resource_class = Serving
+
+    @staticmethod
+    def _preprocess_config(config):
+        c = config
+        if not c.get('args'):
+            return
+
+        args = c['args']
+        if isinstance(args, six.string_types):
+            c['command'] = '%s %s' % (c.get('command', ''), c['args'])
+        elif isinstance(args, dict):
+            args_str = ' '.join(
+                ['--%s=%s' % (k, v) for k, v in args.items()]
+            )
+            c['command'] = '%s %s' % (c.get('command', ''), args_str)
+        del c['args']
 
     def create(self, app, config):
         self._ensure_not_empty(app=app)
 
         # If the specified definition is actually a file, read in the
         # definition file
-        definition = utils.get_contents_if_file(config)
+        if isinstance(config, dict):
+            self._preprocess_config(config)
+            definition = yaml.dump(config)
+        else:
+            definition = utils.get_contents_if_file(config)
 
         resp = self.http_client.post(
             '/apps/%s/servings' % app,
@@ -38,6 +94,13 @@ class ServingManager(base.ResourceManager):
         return self._list(
             '/apps/%s/tasks/%s/servings' % (app, task)
         )
+
+    def logs(self, app, task, build):
+        url = '/apps/%s/tasks/%s/%s/serve/logs' % (
+            app, task, build
+        )
+        resp = self.http_client.get(url)
+        return base.extract_json(resp, None)
 
     def delete(self, app, task, build):
         self._ensure_not_empty(app=app, task=task, build=build)

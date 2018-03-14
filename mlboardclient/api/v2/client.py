@@ -56,7 +56,7 @@ class Client(object):
         resp = self.http_client.post('/apps/%s/tasks/%s/%s' % (app_name,task_name,build_id),
                               data,
                               headers={'content-type': 'application/json'})
-        if resp.status_code != 400:
+        if resp.status_code != 200:
             raise RuntimeError('%s: %s' % (resp.status_code, resp.content))
 
     def model_upload(self, model_name, version, path,

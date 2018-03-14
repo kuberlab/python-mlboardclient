@@ -3,6 +3,8 @@ import os
 
 import six
 
+import json
+
 from mlboardclient.api import httpclient
 from mlboardclient.api.v2 import apps
 from mlboardclient.api.v2 import datasets
@@ -38,6 +40,24 @@ class Client(object):
         self.apps = apps.AppsManager(http_client)
         self.keys = keys.KeysManager(http_client)
         self.datasets = datasets.DatasetsManager(http_client)
+
+    def update_task_info(self,data,app_name=None,task_name=None,build_id=None):
+        if not app_name:
+            project = os.environ.get('PROJECT_NAME')
+            workspace = os.environ.get('WORKSPACE_ID')
+            if project and workspace:
+                app_name = workspace + '-' + project
+        if not task_name:
+            task_name = os.environ.get('TASK_NAME')
+        if not build_id:
+            build_id = os.environ.get('BUILD_ID')
+
+        data = json.dumps(data)
+        resp = self.http_client.post('/apps/%s/tasks/%s/%s' % (app_name,task_name,build_id),
+                              data,
+                              headers={'content-type': 'text/plain'})
+        if resp.status_code != 400:
+            raise RuntimeError('%s: %s' % (resp.status_code, resp.content))
 
     def model_upload(self, model_name, version, path,
                      workspace=None, project_name=None, auto_create=True):

@@ -63,7 +63,7 @@ class Task(base.Resource):
             self.config_raw = yaml.safe_dump(
                 self.config, default_flow_style=False
             )
-
+        self.comment = None
         if not hasattr(self, 'status'):
             self.status = 'undefined'
 
@@ -171,7 +171,10 @@ class Task(base.Resource):
 
         def start_next_build():
             index, idle_task = idle_builds.popitem()
-            idle_task.start(comment)
+            if idle_task.comment is not None:
+                idle_task.start(idle_task.comment)
+            else:
+                idle_task.start(comment)
             LOG.info('Started task %s:%s' % (idle_task.name, idle_task.build))
             builds[index] = idle_task
 

@@ -64,6 +64,9 @@ class Task(base.Resource):
                 self.config, default_flow_style=False
             )
         self.comment = None
+        if not hasattr(self, 'exec_info'):
+            self.exec_info = None
+
         if not hasattr(self, 'status'):
             self.status = 'undefined'
 

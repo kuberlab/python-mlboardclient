@@ -89,6 +89,7 @@ class Task(base.Resource):
             self.build = new_task.build
             self.status = new_task.status
             self.completed = new_task.completed
+            self.exec_info = new_task.exec_info
         return self
 
     def start(self, comment=None):

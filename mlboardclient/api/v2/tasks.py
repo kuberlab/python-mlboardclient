@@ -1,7 +1,9 @@
+import inspect
 import logging
 import re
-import six
 import time
+
+import six
 import yaml
 
 from mlboardclient.api import base
@@ -115,11 +117,12 @@ class Task(base.Resource):
         self.start(comment=comment)
         return self.wait(timeout=timeout, delay=delay)
 
-    def parallel_run(self, threads_num, arg_spec, comment=None):
+    def parallel_run(self, threads_num, transform_spec, comment=None):
         """Runs current task multiple times with args per resource.
 
         :param threads_num: Number of parallel tasks performed simultaneously
-        :param arg_spec: Iterator containing task resource args, e.g:
+        :param transform_spec: Iterator containing task resource args
+          or transofrm function for task, e.g:
           [
             {'worker': {'batch_size': 10}},
             {'worker': {'batch_size': 5}}
@@ -130,6 +133,12 @@ class Task(base.Resource):
 
           --batch-size 10
 
+        or transform functions:
+          [
+            func(task),
+            func(task)
+          ]
+        In this case current task will be transformed using function.
         :param comment: Comment to add to every task.
         :return: generator of task logs:
           [
@@ -143,15 +152,18 @@ class Task(base.Resource):
         idle_builds = {}
         builds = {}
         completed_builds = {}
-        for i, args in enumerate(arg_spec):
+        for i, transformator in enumerate(transform_spec):
             t = self.copy()
 
-            for k, v in args.items():
-                res_args = t.resource(k).get('args', {})
-                res_args.update(v)
-                t.resource(k)['args'] = res_args
+            if inspect.isfunction(transformator):
+                transformator(t)
+            elif isinstance(transformator, dict):
+                for k, v in transformator.items():
+                    res_args = t.resource(k).get('args', {})
+                    res_args.update(v)
+                    t.resource(k)['args'] = res_args
 
-                idle_builds[i] = t
+            idle_builds[i] = t
 
         num_builds = len(idle_builds)
 

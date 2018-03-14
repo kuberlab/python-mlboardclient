@@ -11,7 +11,10 @@ task.resource('worker')['args'] = {'common': 'yes'}
 
 def args(num):
     for i in range(num):
-        yield {'worker': {'arg': i}}
+        def f(t):
+            t.resource('worker')['args']['arg'] = i
+
+        yield f
 
 
 logs = task.parallel_run(3, args(7))

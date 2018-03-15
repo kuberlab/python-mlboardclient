@@ -210,9 +210,7 @@ class Task(base.Resource):
     @staticmethod
     def _complete_task_generator(tasks):
         for t in tasks:
-            yield {
-                '%s:%s' % (t.name, t.build) : t
-            }
+            yield t
 
     @staticmethod
     def _log_generator(tasks):

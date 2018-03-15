@@ -1,8 +1,9 @@
-import json
+import base64
 import os
 import six
 import yaml
 
+from mlboardclient import api
 from mlboardclient.api import base
 from mlboardclient import utils
 
@@ -144,6 +145,17 @@ class ServingManager(base.ResourceManager):
             ws_name = os.environ.get('WORKSPACE_NAME')
             ws_id = os.environ.get('WORKSPACE_ID')
             namespace = '%s-%s' % (ws_id, ws_name) if ws_id else None
+
+        # Preprocess input
+        if isinstance(data, dict) and data.get('inputs'):
+            if isinstance(data['inputs'], dict):
+                for k, v in data['inputs'].items():
+                    if not isinstance(v, dict):
+                        continue
+
+                    if v.get('dtype') == api.DT_STRING:
+                        v['data'] = base64.encodestring(
+                            v.get('data', '')).decode()
 
         if not namespace:
             raise RuntimeError('namespace parameter required.')

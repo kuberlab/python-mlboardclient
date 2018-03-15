@@ -8,6 +8,7 @@ import six
 import yaml
 
 from mlboardclient.api import base
+from mlboardclient.api.v2 import executor
 from mlboardclient import exceptions as exc
 from mlboardclient import utils
 
@@ -70,6 +71,9 @@ class Task(base.Resource):
 
         if not hasattr(self, 'status'):
             self.status = 'undefined'
+
+        if not hasattr(self, 'completed'):
+            self.completed = False
 
     def copy(self):
         return Task(self.manager, self.to_dict())
@@ -391,6 +395,9 @@ class TaskManager(base.ResourceManager):
 
         if resp.status_code != 200:
             raise RuntimeError('%s: %s' % (resp.status_code, resp.content))
+
+    def new_executor(self, max_parallel):
+        return executor.TaskExecutor(self, max_parallel)
 
 
 def apply_env(task, envs):

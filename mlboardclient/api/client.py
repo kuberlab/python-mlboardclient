@@ -7,6 +7,6 @@ def Client(base_url=client_v2.DEFAULT_BASE_URL):
 
 
 def update_task_info(data, app_name=None, task_name=None, build_id=None):
-    return Client().update_task_info(
+    return Client().tasks.update_task_info(
         data, app_name=app_name, task_name=task_name, build_id=build_id
     )

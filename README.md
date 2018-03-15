@@ -4,6 +4,14 @@ Python lib for interacting ml-board component.
 
 ## Installation
 
+### From PyPi
+
+```bash
+pip install python-mlboardclient
+```
+
+### From github (fresh master branch)
+
 ```bash
 pip install 'git+https://github.com/kuberlab/python-mlboardclient.git'
 ```

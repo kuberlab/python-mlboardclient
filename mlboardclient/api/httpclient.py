@@ -1,10 +1,10 @@
 
 import copy
+import json
+import logging
 import os
 
 import requests
-
-import logging
 
 
 CACERT = 'cacert'
@@ -72,6 +72,9 @@ class HTTPClient(object):
     @log_request
     def post(self, url, body, headers=None):
         options = self._get_request_options('post', headers)
+
+        if isinstance(body, list) or isinstance(body, dict):
+            body = json.dumps(body)
 
         return self.crud_provider.post(self.base_url + url,
                                        data=body, **options)

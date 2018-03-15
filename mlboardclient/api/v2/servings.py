@@ -1,3 +1,4 @@
+import json
 import os
 import six
 import yaml
@@ -154,7 +155,11 @@ class ServingManager(base.ResourceManager):
         resp = self.http_client.post(
             url,
             data,
-            headers={'Proxy_addr': serving_addr, 'Proxy_port': port}
+            headers={
+                'Proxy_addr': serving_addr,
+                'Proxy_port': port,
+                'Content-Type': 'application/json'
+            }
         )
         # Need extract json?
         return resp

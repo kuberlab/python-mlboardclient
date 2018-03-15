@@ -205,7 +205,14 @@ class Task(base.Resource):
 
             time.sleep(5)
 
-        return self._log_generator(completed_builds.values())
+        return self._complete_task_generator(completed_builds.values())
+
+    @staticmethod
+    def _complete_task_generator(tasks):
+        for t in tasks:
+            yield {
+                '%s:%s' % (t.name, t.build) : t
+            }
 
     @staticmethod
     def _log_generator(tasks):

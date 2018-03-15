@@ -1,9 +1,8 @@
 
+import json
 import os
 
 import six
-
-import json
 
 from mlboardclient.api import httpclient
 from mlboardclient.api.v2 import apps
@@ -41,7 +40,8 @@ class Client(object):
         self.keys = keys.KeysManager(http_client)
         self.datasets = datasets.DatasetsManager(http_client)
 
-    def update_task_info(self,data,app_name=None,task_name=None,build_id=None):
+    def update_task_info(self, data, app_name=None,
+                         task_name=None, build_id=None):
         if not app_name:
             project = os.environ.get('PROJECT_NAME')
             workspace = os.environ.get('WORKSPACE_ID')
@@ -53,9 +53,12 @@ class Client(object):
             build_id = os.environ.get('BUILD_ID')
 
         data = json.dumps(data)
-        resp = self.http_client.post('/apps/%s/tasks/%s/%s' % (app_name,task_name,build_id),
-                              data,
-                              headers={'content-type': 'application/json'})
+        resp = self.http_client.post(
+            '/apps/%s/tasks/%s/%s' % (app_name, task_name, build_id),
+            data,
+            headers={'content-type': 'application/json'}
+        )
+
         if resp.status_code != 200:
             raise RuntimeError('%s: %s' % (resp.status_code, resp.content))
 

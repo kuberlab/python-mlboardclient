@@ -1,5 +1,7 @@
 # python-mlboardclient
 
+[![Pypi](https://img.shields.io/badge/pypi-python--mlboardclient-green.svg)](https://pypi.python.org/pypi/python-mlboardclient)
+
 Python lib for interacting ml-board component.
 
 ## Installation

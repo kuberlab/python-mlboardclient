@@ -39,6 +39,14 @@ class Client(object):
         self.keys = keys.KeysManager(http_client)
         self.datasets = datasets.DatasetsManager(http_client)
 
+    def update_task_info(self, data, app_name=None,
+                         task_name=None, build_id=None):
+        # Alias for self.tasks.update_task_info
+        return self.tasks.update_task_info(
+            data, app_name=app_name,
+            task_name=task_name, build_id=build_id
+        )
+
     def model_upload(self, model_name, version, path,
                      workspace=None, project_name=None, auto_create=True):
         cloud_dealer_url = os.environ.get('CLOUD_DEALER_URL')

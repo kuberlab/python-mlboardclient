@@ -22,6 +22,13 @@ class TaskExecutor(object):
         self.event = threading.Event()
         self._running_tasks = {}
 
+        self._queue_thread = None
+        self._check_thread = None
+        # self._spawn_threads()
+
+    def _spawn_threads(self):
+        self.event.clear()
+
         # self._queue_thread = eventlet.spawn(self._start_queue)
         self._queue_thread = threading.Thread(target=self._start_queue)
         self._queue_thread.start()
@@ -31,6 +38,9 @@ class TaskExecutor(object):
 
     def put(self, task):
         self.queue.put(task)
+
+        if not self._queue_thread and not self._check_thread:
+            self._spawn_threads()
 
     def _start_queue(self):
         while not self.event.isSet() or self.queue.unfinished_tasks:
@@ -77,3 +87,7 @@ class TaskExecutor(object):
             self._check_thread.join(timeout)
         except KeyboardInterrupt:
             return
+        finally:
+            self._check_thread = None
+            self._queue_thread = None
+            self.event.clear()

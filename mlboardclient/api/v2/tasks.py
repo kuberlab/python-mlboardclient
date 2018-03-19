@@ -9,6 +9,7 @@ import yaml
 
 from mlboardclient.api import base
 from mlboardclient.api.v2 import executor
+from mlboardclient.api.v2 import optimizator
 from mlboardclient import exceptions as exc
 from mlboardclient import utils
 
@@ -285,6 +286,14 @@ class Task(base.Resource):
         raise RuntimeError(
             'Resource %s in task %s not found.' % (name, self.name)
         )
+
+    def optimize(self, target_parameter, param_spec, iterations=10):
+        return optimizator.Optimizator(
+            self,
+            target_parameter,
+            param_spec,
+            iterations=iterations
+        ).run()
 
 
 class TaskList(list):

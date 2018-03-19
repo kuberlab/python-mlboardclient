@@ -49,18 +49,26 @@ while len(tasks) > 0:
         print(json.dumps(worker_logs, indent=2))
         tasks.remove(t)
 
-        if not spawned_more:
-            # Spawn more tasks
-            LOG.info('Spawn more tasks')
-            for tsk in more_tasks:
-                executor.put(tsk)
-                tasks.append(tsk)
-
-            spawned_more = True
+        # if not spawned_more:
+        #     # Spawn more tasks
+        #     LOG.info('Spawn more tasks')
+        #     for tsk in more_tasks:
+        #         executor.put(tsk)
+        #         tasks.append(tsk)
+        #
+        #     spawned_more = True
 
         break
 
     time.sleep(1)
+
+executor.wait()
+
+# Spawn more tasks
+LOG.info('Spawn more tasks')
+for tsk in more_tasks:
+    executor.put(tsk)
+    tasks.append(tsk)
 
 executor.wait()
 # print(json.dumps(list(logs), indent=2))

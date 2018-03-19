@@ -103,6 +103,13 @@ class Optimizator(object):
         def target(**params):
             t = self.base.copy()
             res_args = t.resource(self._resource).get('args', {})
+            
+            # Explicit params type casting.
+            for k in self.spec[self._resource]:
+                _type = self.spec[self._resource][k]['type']
+                if k in params:
+                    params[k] = _type(params[k])
+            
             res_args.update(dict(**params))
             t.resource(self._resource)['args'] = res_args
 

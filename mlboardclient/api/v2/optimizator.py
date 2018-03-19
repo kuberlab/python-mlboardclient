@@ -60,7 +60,8 @@ class ParamSpecBuilder(object):
 
 
 class Optimizator(object):
-    def __init__(self, base_task, target_parameter, param_spec, iterations=10):
+    def __init__(self, base_task, target_parameter, param_spec,
+                 iterations=10, init_steps=5):
         """Helper for optimize hyper parameters.
 
         :param base_task: task which parameters to optimize.
@@ -79,6 +80,7 @@ class Optimizator(object):
           }
         """
         self.iterations = iterations
+        self.init_steps = init_steps
         # Process param spec.
         self.spec = param_spec
         self.target_parameter = target_parameter
@@ -135,6 +137,6 @@ class Optimizator(object):
         return target
 
     def run(self):
-        self.bo.maximize(init_points=1, n_iter=self.iterations)
+        self.bo.maximize(init_points=self.init_steps, n_iter=self.iterations)
 
         return self.bo.res

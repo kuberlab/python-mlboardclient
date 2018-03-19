@@ -287,12 +287,13 @@ class Task(base.Resource):
             'Resource %s in task %s not found.' % (name, self.name)
         )
 
-    def optimize(self, target_parameter, param_spec, iterations=10):
+    def optimize(self, target_parameter, param_spec, iterations=10, init_steps=2):
         return optimizator.Optimizator(
             self,
             target_parameter,
             param_spec,
-            iterations=iterations
+            iterations=iterations,
+            init_steps=init_steps
         ).run()
 
 

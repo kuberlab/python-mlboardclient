@@ -88,7 +88,7 @@ class Optimizator(object):
         # self.executor = executor.TaskExecutor(self.base.manager, 1)
         bayes_spec = {}
 
-        res_keys = self.spec.keys()
+        res_keys = list(self.spec.keys())
         if not res_keys:
             raise RuntimeError('Specify at least 1 resource in param_spec!')
 

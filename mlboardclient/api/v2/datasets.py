@@ -1,6 +1,11 @@
+import logging
+from os import path
 
 from mlboardclient.api import base
 from mlboardclient import utils
+
+
+LOG = logging.getLogger(__name__)
 
 
 class Dataset(base.Resource):
@@ -10,6 +15,11 @@ class Dataset(base.Resource):
 class DatasetsManager(base.ResourceManager):
     resource_class = Dataset
     base_command = 'kdataset'
+
+    def change(self, root, dataset, version):
+        filename = path.join(root, '.%s__%s' % (dataset, version))
+        content = open(filename).read()
+        LOG.info('Change dataset to %s:%s: %s' % (dataset, version, content))
 
     def pull(self, workspace, name, version, to_dir, file_name=None):
         cmd = ['pull', workspace, '%s:%s' % (name, version)]

@@ -16,7 +16,7 @@ result = task.optimize(
     'checked_value',
     spec,
     method='skopt',
-    iterations=8,
+    iterations=10,
     init_steps=4,
     max_parallel=2,
     direction='maximize'

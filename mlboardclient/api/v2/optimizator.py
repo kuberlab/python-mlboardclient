@@ -192,8 +192,8 @@ class SkoptOptimizator(object):
 
                 raise RuntimeError(msg)
 
-            res = f(*t._current_args)
-            t.update_task_info({'checked_value': float(res)})
+            # res = f(*t._current_args)
+            # t.update_task_info({'checked_value': float(res)})
             if not t.exec_info:
                 raise RuntimeError(
                     'Task must expose variables via '

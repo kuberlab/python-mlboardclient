@@ -15,7 +15,9 @@ print('Run with param spec = %s' % spec)
 result = task.optimize(
     'checked_value',
     spec,
-    method='bayes',
+    method='skopt',
+    iterations=8,
+    init_steps=4,
     max_parallel=2,
     direction='maximize'
 )

@@ -1,11 +1,17 @@
 import collections
+import importlib
 import json
 import logging
 import time
 
 from bayes_opt import bayesian_optimization as bayes
-import skopt
-from skopt import space
+
+try:
+    skopt = importlib.import_module('skopt')
+    space = importlib.import_module('skopt.space')
+except ImportError:
+    skopt = None
+    space = None
 
 from mlboardclient.api.v2 import executor
 
@@ -74,6 +80,11 @@ class ParamSpecBuilder(object):
 
     def build(self):
         return self.spec
+
+
+import math
+def f(x):
+    return math.exp(-(x - 2)**2) + math.exp(-(x - 6)**2/10) + 1 / (x**2 + 1)
 
 
 class SkoptOptimizator(object):
@@ -181,8 +192,8 @@ class SkoptOptimizator(object):
 
                 raise RuntimeError(msg)
 
-            # res = f(*t._current_args)
-            # t.update_task_info({'checked_value': float(res)})
+            res = f(*t._current_args)
+            t.update_task_info({'checked_value': float(res)})
             if not t.exec_info:
                 raise RuntimeError(
                     'Task must expose variables via '

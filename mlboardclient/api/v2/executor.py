@@ -7,10 +7,10 @@ from six.moves import queue
 
 
 LOG = logging.getLogger(__name__)
-eventlet.monkey_patch(
-    thread=True,
-    time=True
-)
+# eventlet.monkey_patch(
+#     thread=True,
+#     time=True
+# )
 
 
 class TaskExecutor(object):
@@ -26,12 +26,12 @@ class TaskExecutor(object):
     def _spawn_threads(self):
         self.event.clear()
 
-        self._queue_thread = eventlet.spawn(self._start_queue)
-        # self._queue_thread = threading.Thread(target=self._start_queue)
-        # self._queue_thread.start()
-        self._check_thread = eventlet.spawn(self._check)
-        # self._check_thread = threading.Thread(target=self._check)
-        # self._check_thread.start()
+        # self._queue_thread = eventlet.spawn(self._start_queue)
+        self._queue_thread = threading.Thread(target=self._start_queue)
+        self._queue_thread.start()
+        # self._check_thread = eventlet.spawn(self._check)
+        self._check_thread = threading.Thread(target=self._check)
+        self._check_thread.start()
         self._spawned = True
 
     def put(self, task):
@@ -100,8 +100,8 @@ class TaskExecutor(object):
         try:
             self.event.set()
             self.queue.join()
-            self._queue_thread.wait()
-            self._check_thread.wait()
+            self._queue_thread.join()
+            self._check_thread.join()
         except KeyboardInterrupt:
             return
         finally:

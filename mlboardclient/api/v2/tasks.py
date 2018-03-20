@@ -102,6 +102,11 @@ class Task(base.Resource):
         return self
 
     def update_task_info(self, data):
+        if not self.exec_info:
+            self.exec_info = {}
+
+        self.exec_info.update(data)
+
         self.manager.update_task_info(
             data, self.app, self.name, self.build
         )
@@ -287,14 +292,29 @@ class Task(base.Resource):
             'Resource %s in task %s not found.' % (name, self.name)
         )
 
-    def optimize(self, target_parameter, param_spec, iterations=10, init_steps=2):
-        return optimizator.Optimizator(
-            self,
-            target_parameter,
-            param_spec,
-            iterations=iterations,
-            init_steps=init_steps
-        ).run()
+    def optimize(self, target_parameter, param_spec,
+                 iterations=10, init_steps=3, method='bayes',
+                 direction='maximize', max_parallel=3):
+        if method == 'bayes':
+            return optimizator.Optimizator(
+                self,
+                target_parameter,
+                param_spec,
+                iterations=iterations,
+                init_steps=init_steps
+            ).run()
+        elif method == 'skopt':
+            return optimizator.SkoptOptimizator(
+                self,
+                target_parameter,
+                param_spec,
+                iterations=iterations,
+                init_steps=init_steps,
+                direction=direction,
+                max_parallel=max_parallel,
+            ).run()
+        else:
+            raise RuntimeError('method must be one of (bayes, skopt)')
 
 
 class TaskList(list):

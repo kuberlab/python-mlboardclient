@@ -1,9 +1,26 @@
+import collections
+import json
 import logging
+import time
 
 from bayes_opt import bayesian_optimization as bayes
+import skopt
+from skopt import space
+
+from mlboardclient.api.v2 import executor
 
 
 LOG = logging.getLogger(__name__)
+PARAM_SEPARATOR = '|'
+
+
+def param_name(resource, name):
+    return '%s%s%s' % (resource, PARAM_SEPARATOR, name)
+
+
+def resource_param(param):
+    splitted = param.split(PARAM_SEPARATOR)
+    return splitted[0], splitted[1]
 
 
 class ParamSpecBuilder(object):
@@ -59,6 +76,165 @@ class ParamSpecBuilder(object):
         return self.spec
 
 
+class SkoptOptimizator(object):
+    """Dummy example:
+
+    >>> def optimize():
+    ...   opt = skopt.Optimizer([(-2.0, 10.0)], n_initial_points=5)
+    ...   for i in range(0, 15):
+    ...     x = opt.ask()
+    ...     y = f(x[0])
+    ...     t = opt.tell(x, -y)
+    ...   print t
+    ...   print t.fun
+    """
+
+    def __init__(self, base_task, target_parameter, param_spec,
+                 iterations=10, init_steps=5,
+                 direction='maximize', max_parallel=3):
+        self.iterations = iterations
+        self.init_steps = init_steps
+        # Process param spec.
+        self.spec = param_spec
+        self.target_parameter = target_parameter
+        self.base = base_task.copy()
+        self.executor = executor.TaskExecutor(
+            self.base.manager,
+            max_parallel,
+            callback=self._callback_func()
+        )
+        skopt_spec = []
+
+        if direction == 'maximize':
+            self.sign = -1
+        elif direction == 'minimize':
+            self.sign = 1
+        else:
+            RuntimeError('Supported directions only (minimize, maximize)')
+
+        res_keys = list(self.spec.keys())
+        if not res_keys:
+            raise RuntimeError('Specify at least 1 resource in param_spec!')
+
+        for res in res_keys:
+            for k in self.spec[res]:
+                if self.spec[res][k]['type'] is float:
+                    skopt_spec += [
+                        space.Real(
+                            self.spec[res][k]['bounds'][0],
+                            self.spec[res][k]['bounds'][1],
+                            name=param_name(res, k),
+                        )
+                    ]
+                elif self.spec[res][k]['type'] is int:
+                    skopt_spec += [
+                        space.Integer(
+                            self.spec[res][k]['bounds'][0],
+                            self.spec[res][k]['bounds'][1],
+                            name=param_name(res, k),
+                        )
+                    ]
+
+        self.last_result = None
+        self.space = skopt_spec
+        self.target = self._target_func()
+        self.opt = skopt.Optimizer(skopt_spec, n_initial_points=init_steps)
+
+    def _target_func(self):
+        # Generate target func from spec.
+        def target(params_dict):
+            t = self.base.copy()
+
+            comment = []
+
+            for param in list(params_dict.keys()):
+                res, arg = resource_param(param)
+                _type = self.spec[res][arg]['type']
+                params_dict[param] = _type(params_dict[param])
+
+                res_args = t.resource(res).get('args', {})
+                res_args.update({arg: params_dict[param]})
+                t.resource(res)['args'] = res_args
+
+                comment.append('%s=%s' % (arg, params_dict[param]))
+
+            t.config['exec_comment'] = 'Params: ' + '; '.join(comment)
+            t._current_args = list(params_dict.values())
+
+            self.executor.put(t)
+
+        return target
+
+    def _callback_func(self):
+        def callback(t):
+            if t.status != 'Succeeded':
+                msg = 'Task completed with status %s.' % t.status
+                LOG.error(msg)
+                LOG.error('logs:')
+                logs = t.logs()
+                for k in logs:
+                    print('=' * 53)
+                    print('logs of pod %s' % k)
+                    print('=' * 53)
+                    print(logs[k])
+                    print('')
+
+                raise RuntimeError(msg)
+
+            # res = f(*t._current_args)
+            # t.update_task_info({'checked_value': float(res)})
+            if not t.exec_info:
+                raise RuntimeError(
+                    'Task must expose variables via '
+                    'mlboardclient.api.client.Client().update_task_info()'
+                    ' in exec_info property!'
+                )
+
+            output = t.exec_info.get(self.target_parameter)
+            self.last_result = self.opt.tell(
+                t._current_args, self.sign * output
+            )
+            LOG.info('Got value: %.6f' % output)
+            LOG.info(
+                'The best value so far: %.6f'
+                % (self.last_result.fun * self.sign)
+            )
+            kwargs = self._get_named_args(t._current_args)
+            LOG.info('The best parameters are: %s', json.dumps(kwargs))
+
+        return callback
+
+    def _get_named_args(self, args):
+        kwargs = collections.OrderedDict()
+        for i, arg in enumerate(args):
+            kwargs[self.space[i].name] = arg
+
+        return kwargs
+
+    def run(self):
+        # All steps in 1
+        steps = self.init_steps + self.iterations
+        step = 0
+        while step < steps:
+            if self.executor.is_full():
+                time.sleep(3)
+                continue
+
+            args = self.opt.ask()
+            params = self._get_named_args(args)
+
+            # Target put task to executor and runs it.
+            self.target(params)
+            step += 1
+
+        self.executor.wait()
+
+        if self.last_result:
+            self.last_result.fun *= self.sign
+
+        return self.last_result
+
+
 class Optimizator(object):
     def __init__(self, base_task, target_parameter, param_spec,
                  iterations=10, init_steps=5):
@@ -92,27 +268,31 @@ class Optimizator(object):
         if not res_keys:
             raise RuntimeError('Specify at least 1 resource in param_spec!')
 
-        self._resource = res_keys[0]
-        for k in self.spec[self._resource]:
-            bayes_spec[k] = self.spec[self._resource][k]['bounds']
+        for res in res_keys:
+            for k in self.spec[res]:
+                bayes_spec[param_name(res, k)] = self.spec[res][k]['bounds']
 
         self.bo = bayes.BayesianOptimization(self._target_func(), bayes_spec)
 
     def _target_func(self):
         # Generate target func from spec.
-        def target(**params):
+        def target(**params_dict):
             t = self.base.copy()
-            res_args = t.resource(self._resource).get('args', {})
-            
-            # Explicit params type casting.
-            for k in self.spec[self._resource]:
-                _type = self.spec[self._resource][k]['type']
-                if k in params:
-                    params[k] = _type(params[k])
-            
-            res_args.update(dict(**params))
-            t.resource(self._resource)['args'] = res_args
 
+            comment = []
+
+            for param in list(params_dict.keys()):
+                res, arg = resource_param(param)
+                _type = self.spec[res][arg]['type']
+                params_dict[param] = _type(params_dict[param])
+
+                res_args = t.resource(res).get('args', {})
+                res_args.update({arg: params_dict[param]})
+                t.resource(res)['args'] = res_args
+
+                comment.append('%s=%s' % (arg, params_dict[param]))
+
+            t.config['exec_comment'] = 'Params: ' + '; '.join(comment)
             # self.executor.put(t)
             # self.executor.wait()
             t.start()
@@ -131,6 +311,9 @@ class Optimizator(object):
                     print('')
 
                 raise RuntimeError(msg)
+
+            # res = f(*list(params_dict.values()))
+            # t.update_task_info({'checked_value': float(res)})
 
             if not t.exec_info:
                 raise RuntimeError(

@@ -1,5 +1,3 @@
-import json
-
 from mlboardclient.api import client
 from mlboardclient.api.v2 import optimizator
 
@@ -14,6 +12,12 @@ spec = optimizator.ParamSpecBuilder().resource(
 
 
 print('Run with param spec = %s' % spec)
-result = task.optimize('checked_value', spec, 5)
+result = task.optimize(
+    'checked_value',
+    spec,
+    method='bayes',
+    max_parallel=2,
+    direction='maximize'
+)
 
-print(json.dumps(result, indent=2))
+print(result)

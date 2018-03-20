@@ -1,5 +1,5 @@
+import eventlet
 import logging
-# import eventlet
 import threading
 import time
 
@@ -7,40 +7,46 @@ from six.moves import queue
 
 
 LOG = logging.getLogger(__name__)
-# eventlet.monkey_patch(
-#     thread=True,
-#     time=True
-# )
+eventlet.monkey_patch(
+    thread=True,
+    time=True
+)
 
 
 class TaskExecutor(object):
-    def __init__(self, task_manager, max_parallel):
+    def __init__(self, task_manager, max_parallel, callback=None):
         self.max_parallel = max_parallel
         self.manager = task_manager
-        self.queue = queue.Queue()
+        self.callback = callback
 
         self.event = threading.Event()
-        self._running_tasks = {}
-
-        self._queue_thread = None
-        self._check_thread = None
+        self.reset()
         # self._spawn_threads()
 
     def _spawn_threads(self):
         self.event.clear()
 
-        # self._queue_thread = eventlet.spawn(self._start_queue)
-        self._queue_thread = threading.Thread(target=self._start_queue)
-        self._queue_thread.start()
-        # self._check_thread = eventlet.spawn(self._check)
-        self._check_thread = threading.Thread(target=self._check)
-        self._check_thread.start()
+        self._queue_thread = eventlet.spawn(self._start_queue)
+        # self._queue_thread = threading.Thread(target=self._start_queue)
+        # self._queue_thread.start()
+        self._check_thread = eventlet.spawn(self._check)
+        # self._check_thread = threading.Thread(target=self._check)
+        # self._check_thread.start()
+        self._spawned = True
 
     def put(self, task):
+        if self._failed:
+            raise RuntimeError(
+                'Executor has been failed.'
+            )
+
         self.queue.put(task)
 
-        if not self._queue_thread and not self._check_thread:
+        if not self._spawned:
             self._spawn_threads()
+
+    def is_full(self):
+        return self.queue.unfinished_tasks >= self.max_parallel
 
     def _start_queue(self):
         while not self.event.isSet() or self.queue.unfinished_tasks:
@@ -70,6 +76,17 @@ class TaskExecutor(object):
                 task = self._running_tasks[k]
                 task.refresh()
                 if task.completed:
+                    if self.callback:
+                        try:
+                            self.callback(task)
+                        except Exception as e:
+                            LOG.error("Callback failed: %s", str(e.message))
+                            LOG.error("Exit executor...")
+                            self._failed = True
+                            self.event.set()
+                            while self.queue.unfinished_tasks:
+                                self.queue.task_done()
+                            return
                     LOG.info(
                         'Completed task %s with status=%s' %
                         (self._task_key(task), task.status)
@@ -83,11 +100,18 @@ class TaskExecutor(object):
         try:
             self.event.set()
             self.queue.join()
-            self._queue_thread.join(timeout)
-            self._check_thread.join(timeout)
+            self._queue_thread.wait()
+            self._check_thread.wait()
         except KeyboardInterrupt:
             return
         finally:
-            self._check_thread = None
-            self._queue_thread = None
-            self.event.clear()
+            self.reset()
+
+    def reset(self):
+        self._check_thread = None
+        self._queue_thread = None
+        self.queue = queue.Queue()
+        self._running_tasks = {}
+        self.event.clear()
+        self._spawned = False
+        self._failed = False

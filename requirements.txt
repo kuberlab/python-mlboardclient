@@ -6,4 +6,6 @@ PyYAML>=3.10.0 # MIT
 requests>=2.14.2 # Apache-2.0
 six>=1.9.0 # MIT
 subprocess32; python_version < '3'
+eventlet
 bayesian-optimization
+scikit-optimize

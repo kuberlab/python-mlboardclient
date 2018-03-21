@@ -82,9 +82,9 @@ class ParamSpecBuilder(object):
         return self.spec
 
 
-import math
-def f(x):
-    return math.exp(-(x - 2)**2) + math.exp(-(x - 6)**2/10) + 1 / (x**2 + 1)
+# import math
+# def f(x):
+#     return math.exp(-(x - 2)**2) + math.exp(-(x - 6)**2/10) + 1 / (x**2 + 1)
 
 
 class SkoptOptimizator(object):

@@ -1,4 +1,4 @@
-import eventlet
+# import eventlet
 import logging
 import threading
 import time

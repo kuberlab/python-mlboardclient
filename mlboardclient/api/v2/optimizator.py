@@ -6,17 +6,18 @@ import time
 
 from bayes_opt import bayesian_optimization as bayes
 
-try:
-    skopt = importlib.import_module('skopt')
-    space = importlib.import_module('skopt.space')
-except ImportError:
-    skopt = None
-    space = None
-
 from mlboardclient.api.v2 import executor
 
 
 LOG = logging.getLogger(__name__)
+try:
+    skopt = importlib.import_module('skopt')
+    space = importlib.import_module('skopt.space')
+except ImportError as e:
+    LOG.warning(e)
+    skopt = None
+    space = None
+
 PARAM_SEPARATOR = '|'
 
 
@@ -116,6 +117,8 @@ class SkoptOptimizator(object):
         )
         skopt_spec = []
 
+        # Bayes Opt may only be used for minimize so
+        # positive direction is minimize.
         if direction == 'maximize':
             self.sign = -1
         elif direction == 'minimize':
@@ -204,17 +207,17 @@ class SkoptOptimizator(object):
                 )
 
             output = t.exec_info.get(self.target_parameter)
-            result_val = self.sign * output
             self.last_result = self.opt.tell(
-                t._current_args, result_val
+                t._current_args, output * self.sign
             )
-            if (self.best_val is None) or (result_val<self.best_val):
-                self.best_val = result_val
+            if ((self.best_val is None) or
+                    (output * self.sign < self.best_val * self.sign)):
+                self.best_val = output
                 self.best_task = t
                 kwargs = self._get_named_args(t._current_args)
                 LOG.info(
                     'The best value so far: %.6f \nThe best parameters are: %s'
-                    % (self.last_result.fun * self.sign,json.dumps(kwargs))
+                    % (self.best_val, json.dumps(kwargs))
                 )
         return callback
 
@@ -246,14 +249,16 @@ class SkoptOptimizator(object):
         if self.last_result:
             self.last_result.fun *= self.sign
 
-        return {'best': self.best_task,
-                'best_val': self.last_result.fun,
-                'opt_output': self.last_result}
+        return {
+            'best': self.best_task,
+            'best_val': self.last_result.fun,
+            'opt_output': self.last_result
+        }
 
 
 class Optimizator(object):
     def __init__(self, base_task, target_parameter, param_spec,
-                 iterations=10, init_steps=5):
+                 iterations=10, init_steps=5, direction='maximize'):
         """Helper for optimize hyper parameters.
 
         :param base_task: task which parameters to optimize.
@@ -273,6 +278,16 @@ class Optimizator(object):
         """
         self.iterations = iterations
         self.init_steps = init_steps
+
+        # Bayes Opt may only be used for maximize so
+        # positive direction is maximize.
+        if direction == 'maximize':
+            self.sign = 1
+        elif direction == 'minimize':
+            self.sign = -1
+        else:
+            RuntimeError('Supported directions only (minimize, maximize)')
+
         # Process param spec.
         self.spec = param_spec
         self.target_parameter = target_parameter
@@ -340,15 +355,20 @@ class Optimizator(object):
                     ' in exec_info property!'
                 )
             result_val = t.exec_info.get(self.target_parameter)
-            if (self.best_val is None) or (result_val>self.best_val):
+
+            if ((self.best_val is None) or
+                    (result_val * self.sign > self.best_val * self.sign)):
                 self.best_val = result_val
                 self.best_task = t
-            return result_val
+
+            return result_val * self.sign
 
         return target
 
     def run(self):
         self.bo.maximize(init_points=self.init_steps, n_iter=self.iterations)
-        return {'best': self.best_task,
-                       'best_val': self.best_val,
-                       'opt_output': self.bo.res}
+        return {
+            'best': self.best_task,
+            'best_val': self.best_val,
+            'opt_output': self.bo.res
+        }

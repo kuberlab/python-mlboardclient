@@ -19,7 +19,7 @@ result = task.optimize(
     iterations=10,
     init_steps=4,
     max_parallel=2,
-    direction='maximize'
+    direction='minimize'
 )
 
 print(result)

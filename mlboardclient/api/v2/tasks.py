@@ -301,7 +301,8 @@ class Task(base.Resource):
                 target_parameter,
                 param_spec,
                 iterations=iterations,
-                init_steps=init_steps
+                init_steps=init_steps,
+                direction=direction,
             ).run()
         elif method == 'skopt':
             return optimizator.SkoptOptimizator(

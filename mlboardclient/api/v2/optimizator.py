@@ -147,6 +147,8 @@ class SkoptOptimizator(object):
                     ]
 
         self.last_result = None
+        self.best_val = None
+        self.best_task = None
         self.space = skopt_spec
         self.target = self._target_func()
         self.opt = skopt.Optimizer(skopt_spec, n_initial_points=init_steps)
@@ -202,17 +204,18 @@ class SkoptOptimizator(object):
                 )
 
             output = t.exec_info.get(self.target_parameter)
+            result_val = self.sign * output
             self.last_result = self.opt.tell(
-                t._current_args, self.sign * output
+                t._current_args, result_val
             )
-            LOG.info('Got value: %.6f' % output)
-            LOG.info(
-                'The best value so far: %.6f'
-                % (self.last_result.fun * self.sign)
-            )
-            kwargs = self._get_named_args(t._current_args)
-            LOG.info('The best parameters are: %s', json.dumps(kwargs))
-
+            if (self.best_val is None) or (result_val<self.best_val):
+                self.best_val = result_val
+                self.best_task = t
+                kwargs = self._get_named_args(t._current_args)
+                LOG.info(
+                    'The best value so far: %.6f \nThe best parameters are: %s'
+                    % (self.last_result.fun * self.sign,json.dumps(kwargs))
+                )
         return callback
 
     def _get_named_args(self, args):
@@ -243,7 +246,9 @@ class SkoptOptimizator(object):
         if self.last_result:
             self.last_result.fun *= self.sign
 
-        return self.last_result
+        return {'best': self.best_task,
+                'best_val': self.last_result.fun,
+                'opt_output': self.last_result}
 
 
 class Optimizator(object):
@@ -272,6 +277,8 @@ class Optimizator(object):
         self.spec = param_spec
         self.target_parameter = target_parameter
         self.base = base_task.copy()
+        self.best_task = None
+        self.best_val = None
         # self.executor = executor.TaskExecutor(self.base.manager, 1)
         bayes_spec = {}
 
@@ -332,12 +339,16 @@ class Optimizator(object):
                     'mlboardclient.api.client.Client().update_task_info()'
                     ' in exec_info property!'
                 )
-
-            return t.exec_info.get(self.target_parameter)
+            result_val = t.exec_info.get(self.target_parameter)
+            if (self.best_val is None) or (result_val>self.best_val):
+                self.best_val = result_val
+                self.best_task = t
+            return result_val
 
         return target
 
     def run(self):
         self.bo.maximize(init_points=self.init_steps, n_iter=self.iterations)
-
-        return self.bo.res
+        return {'best': self.best_task,
+                       'best_val': self.best_val,
+                       'opt_output': self.bo.res}

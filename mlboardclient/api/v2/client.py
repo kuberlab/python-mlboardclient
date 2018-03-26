@@ -3,6 +3,7 @@ import os
 
 import six
 
+from mlboardclient.api import context
 from mlboardclient.api import httpclient
 from mlboardclient.api.v2 import apps
 from mlboardclient.api.v2 import datasets
@@ -16,10 +17,24 @@ DEFAULT_BASE_URL = 'http://mlboard-v2.kuberlab:8082/api/v2'
 
 
 class Client(object):
-    def __init__(self, base_url, **kwargs):
+    def __init__(self, base_url, workspace_id=None, workspace_name=None,
+                 project_name=None, kuberlab_api_url=None, **kwargs):
         # We get the session at this point, as some instances of session
         # objects might have mutexes that can't be deep-copied.
         session = kwargs.pop('session', None)
+
+        if workspace_id and project_name:
+            self.app_id = '%s-%s' % (workspace_id, project_name)
+        else:
+            self.app_id = None
+
+        self.ctx = context.MlboardContext(
+            workspace_id=workspace_id,
+            project_name=project_name,
+            workspace=workspace_name,
+            app_id=self.app_id,
+            kuberlab_api_url=kuberlab_api_url,
+        )
 
         if base_url and not isinstance(base_url, six.string_types):
             raise RuntimeError('Mlboard url should be a string.')
@@ -35,13 +50,17 @@ class Client(object):
         # Create all resource managers.
         self.tasks = tasks.TaskManager(http_client)
         self.servings = servings.ServingManager(http_client)
-        self.apps = apps.AppsManager(http_client)
+        self.apps = apps.AppsManager(http_client, self.ctx)
         self.keys = keys.KeysManager(http_client)
         self.datasets = datasets.DatasetsManager(http_client)
 
     def update_task_info(self, data, app_name=None,
                          task_name=None, build_id=None):
         # Alias for self.tasks.update_task_info
+
+        if self.app_id and not app_name:
+            app_name = self.app_id
+
         return self.tasks.update_task_info(
             data, app_name=app_name,
             task_name=task_name, build_id=build_id
@@ -49,7 +68,11 @@ class Client(object):
 
     def model_upload(self, model_name, version, path,
                      workspace=None, project_name=None, auto_create=True):
-        cloud_dealer_url = os.environ.get('CLOUD_DEALER_URL')
+        if not self.ctx.kuberlab_api_url:
+            cloud_dealer_url = os.environ.get('CLOUD_DEALER_URL')
+        else:
+            cloud_dealer_url = self.ctx.kuberlab_api_url
+
         if not cloud_dealer_url:
             raise RuntimeError(
                 'To perform this operation CLOUD_DEALER_URL'
@@ -59,12 +82,20 @@ class Client(object):
         key = self.keys.create()
 
         if not project_name:
-            project_name = os.environ.get('PROJECT_NAME')
+            if not self.ctx.project_name:
+                project_name = os.environ.get('PROJECT_NAME')
+            else:
+                project_name = self.ctx.project_name
+
             if not project_name:
                 raise RuntimeError('project name required')
 
         if not workspace:
-            workspace = os.environ.get('WORKSPACE_NAME')
+            if not self.ctx.workspace:
+                workspace = os.environ.get('WORKSPACE_NAME')
+            else:
+                workspace = self.ctx.workspace
+
             if not workspace:
                 raise RuntimeError('workspace required')
 

@@ -100,6 +100,16 @@ class App(base.Resource):
 class AppsManager(base.ResourceManager):
     resource_class = App
 
+    def __init__(self, http_client, ctx):
+        """App manager initializer.
+
+        :param http_client:
+        :param ctx:
+        :type ctx: mlboardclient.api.context.MlboardContext
+        """
+        super(AppsManager, self).__init__(http_client)
+        self.ctx = ctx
+
     def create(self, name, config):
         self._ensure_not_empty(name=name)
 
@@ -126,10 +136,13 @@ class AppsManager(base.ResourceManager):
         # running inside kuberlab ML-task container
         # and will be picked up from env vars.
         if not name:
-            project = os.environ.get('PROJECT_NAME')
-            workspace = os.environ.get('WORKSPACE_ID')
-            if project and workspace:
-                name = workspace + '-' + project
+            if not self.ctx.app_id:
+                project = os.environ.get('PROJECT_NAME')
+                workspace = os.environ.get('WORKSPACE_ID')
+                if project and workspace:
+                    name = workspace + '-' + project
+            else:
+                name = self.ctx.app_id
 
         self._ensure_not_empty(name=name)
 

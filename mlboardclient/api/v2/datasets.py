@@ -68,8 +68,13 @@ class DatasetsManager(base.ResourceManager):
         # ...
         versions = []
         lines = out.split('\n')
-        for l in lines:
-            v, size = l.split()
+        for l in lines[1:-1]:
+            splitted = l.split()
+            if len(splitted) != 2:
+                raise RuntimeError('Wrong dataset client/server version. Please update')
+
+            v = splitted[0]
+            size = splitted[1]
             versions.append({'version': v, 'size': size})
 
         return versions

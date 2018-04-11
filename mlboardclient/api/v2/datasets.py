@@ -62,11 +62,17 @@ class DatasetsManager(base.ResourceManager):
 
     def version_list(self, workspace, name):
         out, err = self._run_kdataset('version-list', workspace, name)
-        # VERSIONS:
-        # 1.0.0
-        # 1.0.1
+        # VERSIONS SIZE
+        # 1.0.0    25.052M
+        # 1.0.1    34.042K
         # ...
-        return out.split('\n')[1:-1]
+        versions = []
+        lines = out.split('\n')
+        for l in lines:
+            v, size = l.split()
+            versions.append({'version': v, 'size': size})
+
+        return versions
 
     def version_delete(self, workspace, name, version):
         out, err = self._run_kdataset(

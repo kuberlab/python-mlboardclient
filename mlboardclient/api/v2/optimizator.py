@@ -233,12 +233,12 @@ class SkoptOptimizator(object):
         steps = self.init_steps + self.iterations
         step = 0
         while step < steps:
+            if self.executor.error():
+                raise RuntimeError('Failed: %s' % self.executor.error())
+
             if self.executor.is_full():
                 time.sleep(3)
                 continue
-
-            if self.executor.error():
-                raise RuntimeError('Failed: %s' % self.executor.error())
 
             args = self.opt.ask()
             params = self._get_named_args(args)

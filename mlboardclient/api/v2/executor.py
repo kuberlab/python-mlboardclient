@@ -5,6 +5,8 @@ import time
 
 from six.moves import queue
 
+from mlboardclient.api import base
+
 
 LOG = logging.getLogger(__name__)
 # eventlet.monkey_patch(
@@ -36,14 +38,24 @@ class TaskExecutor(object):
 
     def put(self, task):
         if self._failed:
-            raise RuntimeError(
-                'Executor has been failed.'
-            )
+            if self._msg:
+                raise RuntimeError(self._msg)
+
+            raise RuntimeError('Executor has been failed.')
 
         self.queue.put(task)
 
         if not self._spawned:
             self._spawn_threads()
+
+    def error(self):
+        if not self._failed:
+            return False
+
+        if self._msg:
+            return self._msg
+
+        return self._failed
 
     def is_full(self):
         return self.queue.unfinished_tasks >= self.max_parallel
@@ -60,8 +72,15 @@ class TaskExecutor(object):
             except queue.Empty:
                 time.sleep(0.02)
                 continue
+            except base.APIException as e:
+                self._msg = str(e)
+                self._failed = True
+                self.event.set()
+                while self.queue.unfinished_tasks:
+                    self.queue.task_done()
+                continue
 
-            LOG.info('Started task %s', self._task_key(task))
+            LOG.info('Started task %s' % self._task_key(task))
 
             self._running_tasks[self._task_key(task)] = task
 
@@ -80,8 +99,10 @@ class TaskExecutor(object):
                         try:
                             self.callback(task)
                         except Exception as e:
-                            LOG.error("Callback failed: %s", str(e.message))
+                            msg = "Callback failed: %s" % str(e.message)
+                            LOG.error(msg)
                             LOG.error("Exit executor...")
+                            self._msg = msg
                             self._failed = True
                             self.event.set()
                             while self.queue.unfinished_tasks:

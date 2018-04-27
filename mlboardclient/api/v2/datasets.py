@@ -71,7 +71,9 @@ class DatasetsManager(base.ResourceManager):
         for l in lines[1:-1]:
             splitted = l.split()
             if len(splitted) != 2:
-                raise RuntimeError('Wrong dataset client/server version. Please update')
+                raise RuntimeError(
+                    'Wrong dataset client/server version. Please update'
+                )
 
             v = splitted[0]
             size = splitted[1]

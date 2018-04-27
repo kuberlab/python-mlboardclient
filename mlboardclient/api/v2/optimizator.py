@@ -237,6 +237,9 @@ class SkoptOptimizator(object):
                 time.sleep(3)
                 continue
 
+            if self.executor.error():
+                raise RuntimeError('Failed: %s' % self.executor.error())
+
             args = self.opt.ask()
             params = self._get_named_args(args)
 

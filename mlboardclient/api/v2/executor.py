@@ -73,12 +73,12 @@ class TaskExecutor(object):
                 time.sleep(0.02)
                 continue
             except base.APIException as e:
-                self._msg = str(e)
-                self._failed = True
                 self.event.set()
                 while self.queue.unfinished_tasks:
                     self.queue.task_done()
-                continue
+                self._msg = str(e)
+                self._failed = True
+                return
 
             LOG.info('Started task %s' % self._task_key(task))
 
@@ -102,11 +102,11 @@ class TaskExecutor(object):
                             msg = "Callback failed: %s" % str(e.message)
                             LOG.error(msg)
                             LOG.error("Exit executor...")
-                            self._msg = msg
-                            self._failed = True
                             self.event.set()
                             while self.queue.unfinished_tasks:
                                 self.queue.task_done()
+                            self._msg = msg
+                            self._failed = True
                             return
                     LOG.info(
                         'Completed task %s with status=%s' %

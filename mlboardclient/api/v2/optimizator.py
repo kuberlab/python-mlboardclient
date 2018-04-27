@@ -186,14 +186,14 @@ class SkoptOptimizator(object):
             if t.status != 'Succeeded':
                 msg = 'Task completed with status %s.' % t.status
                 LOG.error(msg)
-                # LOG.error('logs:')
-                # logs = t.logs()
-                # for k in logs:
-                #     print('=' * 53)
-                #     print('logs of pod %s' % k)
-                #     print('=' * 53)
-                #     print(logs[k])
-                #     print('')
+                LOG.error('logs:')
+                logs = t.logs()
+                for k in logs:
+                    print('=' * 53)
+                    print('logs of pod %s' % k)
+                    print('=' * 53)
+                    print(logs[k])
+                    print('')
 
                 raise RuntimeError(msg)
 

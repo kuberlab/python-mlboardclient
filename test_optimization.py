@@ -2,7 +2,7 @@ from mlboardclient.api import client
 from mlboardclient.api.v2 import optimizator
 
 m = client.Client('http://localhost:8082/api/v2')
-app = m.apps.get('11-tfexample')
+app = m.apps.get('21-tfexample')
 task = app.task('model')
 
 
@@ -18,7 +18,7 @@ result = task.optimize(
     method='skopt',
     iterations=10,
     init_steps=4,
-    max_parallel=2,
+    max_parallel=1,
     direction='minimize'
 )
 

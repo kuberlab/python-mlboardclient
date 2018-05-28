@@ -168,8 +168,8 @@ class ServingManager(base.ResourceManager):
             url,
             data,
             headers={
-                'Proxy_addr': serving_addr,
-                'Proxy_port': port,
+                'Proxy-addr': serving_addr,
+                'Proxy-port': port,
                 'Content-Type': 'application/json'
             }
         )

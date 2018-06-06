@@ -110,7 +110,8 @@ class ServingManager(base.ResourceManager):
         self._delete('/apps/%s/tasks/%s/%s/serve' % (app, task, build))
 
     def call(self, serving_name, model_name, data,
-             signature=None, version=None, port=None, namespace=None):
+             signature=None, version=None, port=None, namespace=None,
+             serving_address=None):
         """Call specific serving with given data.
 
         :param serving_name: Serving name
@@ -157,19 +158,22 @@ class ServingManager(base.ResourceManager):
                         v['data'] = base64.encodestring(
                             v.get('data', '')).decode()
 
-        if not namespace:
+        if not namespace and not serving_address:
             raise RuntimeError('namespace parameter required.')
+        elif serving_address:
+            serving_addr = serving_address
+        else:
+            serving_addr = '%s.%s' % (serving_name, namespace)
+
         if not port:
             port = '9000'
-
-        serving_addr = '%s.%s' % (serving_name, namespace)
 
         resp = self.http_client.post(
             url,
             data,
             headers={
                 'Proxy-addr': serving_addr,
-                'Proxy-port': port,
+                'Proxy-port': str(port),
                 'Content-Type': 'application/json'
             }
         )

@@ -135,13 +135,17 @@ def execute_command(cmd, dirname=None, timeout=300,
     return stdout, stderr, p.returncode
 
 
-def stream_targz(path):
+def stream_targz(path, include_directory=False):
     if not os.path.exists(path):
         raise RuntimeError('%s: No such file or directory' % path)
 
     if os.path.isdir(path):
-        dirname = os.path.dirname(path)
-        basename = os.path.basename(path)
+        if include_directory:
+            dirname = os.path.dirname(path)
+            basename = os.path.basename(path)
+        else:
+            basename = '.'
+            dirname = path
 
         cmd = ['tar', 'czf', '-', basename]
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, cwd=dirname)

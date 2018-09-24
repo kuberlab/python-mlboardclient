@@ -67,7 +67,8 @@ class Client(object):
         )
 
     def model_upload(self, model_name, version, path,
-                     workspace=None, project_name=None, auto_create=True):
+                     workspace=None, project_name=None, auto_create=True,
+                     include_directory=False):
         if not self.ctx.kuberlab_api_url:
             cloud_dealer_url = os.environ.get('CLOUD_DEALER_URL')
         else:
@@ -109,7 +110,7 @@ class Client(object):
             )
         )
 
-        stream = utils.stream_targz(path)
+        stream = utils.stream_targz(path, include_directory=include_directory)
 
         resp = self.http_client.crud_provider.post(
             url,

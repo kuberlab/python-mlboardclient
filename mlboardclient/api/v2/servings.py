@@ -25,7 +25,10 @@ class Serving(base.Resource):
         self.config['taskName'] = task_name
         self.config['build'] = build
         serv = self.manager.create(self.app, self.config)
-        serv.config = yaml.safe_load(serv.config)
+
+        if isinstance(serv.config, six.string_types):
+            serv.config = yaml.safe_load(serv.config)
+
         return serv
 
     def stop(self):

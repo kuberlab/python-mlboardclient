@@ -1,7 +1,7 @@
 import logging
 
 logging.basicConfig(
-    format='%(asctime)s %(levelname)-10s %(name)-25s [-] %(message)s',
+    format='%(asctime)s %(levelname)-5s %(name)-10s [-] %(message)s',
     level='INFO'
 )
 

@@ -1,5 +1,6 @@
 import base64
 import os
+import re
 import six
 import yaml
 
@@ -8,10 +9,17 @@ from mlboardclient.api import base
 from mlboardclient import utils
 
 urlparse = six.moves.urllib.parse
+ws_pattern = re.compile('^[0-9]+-')
 
 
 class Serving(base.Resource):
     resource_name = 'Serving'
+
+    def __init__(self, manager, data):
+        super(Serving, self).__init__(manager, data)
+
+        if isinstance(self.config, six.string_types):
+            self.config = yaml.safe_load(self.config)
 
     def start(self, task_name, build):
         self.config['taskName'] = task_name
@@ -21,7 +29,7 @@ class Serving(base.Resource):
         return serv
 
     def stop(self):
-        task = self.config.get('taskName') or getattr(self, 'serving', '')
+        task = self.config.get('taskName') or getattr(self, 'task', '')
         if not (task or self.config.get('build')):
             raise RuntimeError(
                 'Serving is not pointed to any task/build.'
@@ -30,6 +38,17 @@ class Serving(base.Resource):
 
         self.manager.delete(self.app, task, self.config['build'])
         delattr(self, 'status')
+
+    def get_name(self):
+        if not hasattr(self, 'build') or not hasattr(self, 'serving'):
+            return self.name
+
+        ws_part = ws_pattern.findall(self.app)
+        if len(ws_part) != 1:
+            return self.name
+
+        project_name = self.app[len(ws_part[0]):]
+        return '%s-%s-%s-%s' % (project_name, self.name, self.task, self.build)
 
     def logs(self):
         task = self.config.get('taskName') or getattr(self, 'serving', '')

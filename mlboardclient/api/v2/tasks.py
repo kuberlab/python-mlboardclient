@@ -111,11 +111,68 @@ class Task(base.Resource):
             data, self.app, self.name, self.build
         )
 
-    def start(self, comment=None):
+    def start(self, comment=None, inherit_revisions=True):
         if comment is not None:
             self.config['exec_comment'] = comment
+
+        if inherit_revisions:
+            self.inherit_revisions()
+
         task = self.manager.create(self.app, self.config)
         return self._update_attrs(task)
+
+    def set_dataset_revision(self, volume_name, revision):
+        return self._set_revision(volume_name, 'datasetRevisions', revision)
+
+    def set_git_revision(self, volume_name, revision):
+        return self._set_revision(volume_name, 'gitRevisions', revision)
+
+    def _set_revision(self, volume_name, revision_type, revision):
+        if self._revision_exists(volume_name, revision_type):
+            for rev in self.config[revision_type]:
+                if rev['volumeName'] == volume_name:
+                    rev['revision'] = revision
+        else:
+            revs = self.config.get(revision_type, [])
+            revs.append({'volumeName': volume_name, 'revision': revision})
+            self.config[revision_type] = revs
+
+        return self
+
+    def _revision_exists(self, volume_name, revision_type):
+        return any(
+            [i['volumeName'] == volume_name
+             for i in self.config.get(revision_type, [])]
+        )
+
+    def inherit_revisions(self):
+        if not (os.environ.get('BUILD_ID') or os.environ.get('TASK_NAME')):
+            return
+
+        parent_name = os.environ.get('TASK_NAME')
+        parent_build = os.environ.get('BUILD_ID')
+        parent = self.manager.get(self.app, parent_name, parent_build)
+        parent_cfg = self.manager.get_for_revision(
+            self.app, parent_name, parent.git_revision
+        )
+        git_revisions = parent_cfg.config.get('gitRevisions')
+        ds_revisions = parent_cfg.config.get('datasetRevisions')
+
+        if git_revisions:
+            if not self.config.get('gitRevisions'):
+                self.config['gitRevisions'] = git_revisions
+            else:
+                for rev in git_revisions:
+                    if not self._revision_exists(rev['volumeName'], 'gitRevisions'):
+                        self.config['gitRevisions'].append(rev)
+
+        if ds_revisions:
+            if not self.config.get('datasetRevisions'):
+                self.config['datasetRevisions'] = ds_revisions
+            else:
+                for rev in git_revisions:
+                    if not self._revision_exists(rev['volumeName'], 'datasetRevisions'):
+                        self.config['datasetRevisions'].append(rev)
 
     @build_aware
     def refresh(self):
@@ -328,6 +385,10 @@ class TaskList(list):
 class TaskManager(base.ResourceManager):
     resource_class = Task
 
+    def __init__(self, http_client, app_manager):
+        super(TaskManager, self).__init__(http_client)
+        self.app_manager = app_manager
+
     def list(self, app):
         url = '/apps/%s/tasks' % app
 
@@ -337,6 +398,14 @@ class TaskManager(base.ResourceManager):
         self._ensure_not_empty(app=app, task=task, build=build)
 
         return self._get('/apps/%s/tasks/%s/%s' % (app, task, build))
+
+    def get_for_revision(self, app, task, revision):
+        self._ensure_not_empty(app=app, task=task)
+
+        revisioned = self.app_manager.get_for_revision(
+            name=app, revision=revision
+        )
+        return revisioned.task(task)
 
     @staticmethod
     def _preprocess_config(config):

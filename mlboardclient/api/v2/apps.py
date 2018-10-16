@@ -20,7 +20,19 @@ class App(base.Resource):
         if hasattr(self, 'configuration'):
             self.config = self.configuration
 
-        self._task_manager = tasks.TaskManager(self.manager.http_client)
+        if not hasattr(self, 'name'):
+            self.name = '%s-%s' % (
+                self.config.get('workspace_id'),
+                self.config.get('metadata', {}).get('name')
+            )
+
+        if not hasattr(self, 'git_revision'):
+            self.git_revision = self.config.get('revision', {}).get('revision')
+
+        self._task_manager = tasks.TaskManager(
+            self.manager.http_client,
+            self.manager
+        )
         self._serving_manager = servings.ServingManager(
             self.manager.http_client
         )
@@ -147,6 +159,26 @@ class AppsManager(base.ResourceManager):
         self._ensure_not_empty(name=name)
 
         return self._get('/apps/%s' % name)
+
+    def get_for_revision(self, revision=None, name=None):
+        # if name is empty it means code is
+        # running inside kuberlab ML-task container
+        # and will be picked up from env vars.
+        if not name:
+            if not self.ctx.app_id:
+                project = os.environ.get('PROJECT_NAME')
+                workspace = os.environ.get('WORKSPACE_ID')
+                if project and workspace:
+                    name = workspace + '-' + project
+            else:
+                name = self.ctx.app_id
+
+        self._ensure_not_empty(name=name)
+
+        url = '/apps/{}/history/config/{}'.format(
+            name, revision
+        )
+        return self._get(url)
 
     def delete(self, name):
         self._ensure_not_empty(name=name)

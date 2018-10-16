@@ -48,9 +48,9 @@ class Client(object):
         self.http_client = http_client
 
         # Create all resource managers.
-        self.tasks = tasks.TaskManager(http_client)
         self.servings = servings.ServingManager(http_client)
         self.apps = apps.AppsManager(http_client, self.ctx)
+        self.tasks = tasks.TaskManager(http_client, self.apps)
         self.keys = keys.KeysManager(http_client)
         self.datasets = datasets.DatasetsManager(http_client)
 

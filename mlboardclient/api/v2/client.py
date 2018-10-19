@@ -67,30 +67,7 @@ class Client(object):
         )
 
     def model_upload(self, model_name, version, path,
-                     workspace=None, project_name=None, auto_create=True,
-                     include_directory=False):
-        if not self.ctx.kuberlab_api_url:
-            cloud_dealer_url = os.environ.get('CLOUD_DEALER_URL')
-        else:
-            cloud_dealer_url = self.ctx.kuberlab_api_url
-
-        if not cloud_dealer_url:
-            raise RuntimeError(
-                'To perform this operation CLOUD_DEALER_URL'
-                ' environment var must be filled.'
-            )
-
-        key = self.keys.create()
-
-        if not project_name:
-            if not self.ctx.project_name:
-                project_name = os.environ.get('PROJECT_NAME')
-            else:
-                project_name = self.ctx.project_name
-
-            if not project_name:
-                raise RuntimeError('project name required')
-
+                     workspace=None, auto_create=True):
         if not workspace:
             if not self.ctx.workspace:
                 workspace = os.environ.get('WORKSPACE_NAME')
@@ -100,25 +77,11 @@ class Client(object):
             if not workspace:
                 raise RuntimeError('workspace required')
 
-        # POST /api/v0.2/workspace/{workspace}/mlmodels/{mlmodel}/
-        # versions/{version}/upload?secret=xxx&mlapp=name
-        url = (
-            '%s/workspace/%s/mlmodel/%s/versions/'
-            '%s/upload?secret=%s&mlapp=%s&create=%s' % (
-                cloud_dealer_url, workspace, model_name,
-                version, key.key_id, project_name, str(auto_create).lower()
-            )
+        self.datasets.push(
+            workspace,
+            model_name,
+            version,
+            path,
+            type='model',
+            create=auto_create,
         )
-
-        stream = utils.stream_targz(path, include_directory=include_directory)
-
-        resp = self.http_client.crud_provider.post(
-            url,
-            # data=form_data,
-            files={'model': ('%s.tar.gz' % model_name, stream)}
-        )
-
-        self.keys.delete(key.key_id)
-
-        if resp.status_code >= 400:
-            raise RuntimeError('%s: %s' % (resp.status_code, resp.content))

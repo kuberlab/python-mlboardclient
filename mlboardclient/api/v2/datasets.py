@@ -21,16 +21,17 @@ class DatasetsManager(base.ResourceManager):
         content = open(filename).read()
         LOG.info('Change dataset to %s:%s: %s' % (dataset, version, content))
 
-    def pull(self, workspace, name, version, to_dir, file_name=None):
+    def pull(self, workspace, name, version, to_dir, type='dataset', file_name=None):
         cmd = ['pull', workspace, '%s:%s' % (name, version)]
         if file_name:
             cmd += ['-O', file_name]
+        cmd += ['--type', type]
 
         out, err = self._run_kdataset(*cmd, dirname=to_dir, timeout=1800)
         print(out)
 
     def push(self, workspace, name, version, from_dir,
-             create=False, publish=False, force=False,
+             type='dataset', create=False, publish=False, force=False,
              chunk_size=None, concurrency=None):
         cmd = ['push', workspace, '%s:%s' % (name, version)]
         if force:
@@ -44,24 +45,32 @@ class DatasetsManager(base.ResourceManager):
         if concurrency:
             cmd += ['--concurrency', str(concurrency)]
 
+        cmd += ['--type', type]
+
         self._run_kdataset(
             *cmd, dirname=from_dir, timeout=1800, stdout_control=False
         )
 
-    def list(self, workspace):
-        out, err = self._run_kdataset('dataset-list', workspace)
+    def list(self, workspace, type='dataset'):
+        cmd = ['dataset-list', workspace]
+        cmd += ['--type', type]
+        out, err = self._run_kdataset(*cmd)
         # DATASETS:
         # dataset1
         # dataset2
         # ...
         return out.split('\n')[1:-1]
 
-    def delete(self, workspace, name):
+    def delete(self, workspace, name, type='dataset'):
+        cmd = ['dataset-delete', workspace, name]
+        cmd += ['--type', type]
         out, err = self._run_kdataset('dataset-delete', workspace, name)
         print(out)
 
-    def version_list(self, workspace, name):
-        out, err = self._run_kdataset('version-list', workspace, name)
+    def version_list(self, workspace, name, type='dataset'):
+        cmd = ['version-list', workspace, name]
+        cmd += ['--type', type]
+        out, err = self._run_kdataset(*cmd)
         # VERSIONS SIZE
         # 1.0.0    25.052M
         # 1.0.1    34.042K
@@ -70,7 +79,7 @@ class DatasetsManager(base.ResourceManager):
         lines = out.split('\n')
         for l in lines[1:-1]:
             splitted = l.split()
-            if len(splitted) != 2:
+            if len(splitted) != 4:
                 raise RuntimeError(
                     'Wrong dataset client/server version. Please update'
                 )
@@ -81,10 +90,10 @@ class DatasetsManager(base.ResourceManager):
 
         return versions
 
-    def version_delete(self, workspace, name, version):
-        out, err = self._run_kdataset(
-            'version-delete', workspace, name, version
-        )
+    def version_delete(self, workspace, name, version, type='dataset'):
+        cmd = ['version-delete', workspace, '%s:%s' %(name, version)]
+        cmd += ['--type', type]
+        out, err = self._run_kdataset(*cmd)
         print(out)
 
     def _run_kdataset(self, *args, **options):

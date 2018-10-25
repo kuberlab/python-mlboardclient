@@ -127,6 +127,9 @@ class Task(base.Resource):
     def set_git_revision(self, volume_name, revision):
         return self._set_revision(volume_name, 'gitRevisions', revision)
 
+    def set_model_revision(self, volume_name, revision):
+        return self._set_revision(volume_name, 'modelRevisions', revision)
+
     def _set_revision(self, volume_name, revision_type, revision):
         if self._revision_exists(volume_name, revision_type):
             for rev in self.config[revision_type]:
@@ -145,6 +148,19 @@ class Task(base.Resource):
              for i in self.config.get(revision_type, [])]
         )
 
+    def _update_revisions(self, parent_cfg, revision_type):
+        revisions = parent_cfg.config.get(revision_type)
+
+        if not revisions:
+            return
+
+        if not self.config.get(revision_type):
+            self.config[revision_type] = revisions
+        else:
+            for rev in revisions:
+                if not self._revision_exists(rev['volumeName'], revision_type):
+                    self.config[revision_type].append(rev)
+
     def inherit_revisions(self):
         if not (os.environ.get('BUILD_ID') or os.environ.get('TASK_NAME')):
             return
@@ -155,24 +171,10 @@ class Task(base.Resource):
         parent_cfg = self.manager.get_for_revision(
             self.app, parent_name, parent.git_revision
         )
-        git_revisions = parent_cfg.config.get('gitRevisions')
-        ds_revisions = parent_cfg.config.get('datasetRevisions')
 
-        if git_revisions:
-            if not self.config.get('gitRevisions'):
-                self.config['gitRevisions'] = git_revisions
-            else:
-                for rev in git_revisions:
-                    if not self._revision_exists(rev['volumeName'], 'gitRevisions'):
-                        self.config['gitRevisions'].append(rev)
-
-        if ds_revisions:
-            if not self.config.get('datasetRevisions'):
-                self.config['datasetRevisions'] = ds_revisions
-            else:
-                for rev in git_revisions:
-                    if not self._revision_exists(rev['volumeName'], 'datasetRevisions'):
-                        self.config['datasetRevisions'].append(rev)
+        self._update_revisions(parent_cfg, 'gitRevisions')
+        self._update_revisions(parent_cfg, 'datasetRevisions')
+        self._update_revisions(parent_cfg, 'modelRevisions')
 
     @build_aware
     def refresh(self):

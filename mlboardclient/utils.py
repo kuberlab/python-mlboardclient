@@ -162,16 +162,16 @@ def env_value(name, default_value=None):
         return val
 
 
-def setup_tf_distributed(mode, worker_names='worker', ps_names='ps', port=2222):
-    workers = os.environ.get('{}_NODES'.format(worker_names.upper()))
-    ps = os.environ.get('{}_NODES'.format(ps_names.upper()))
+def setup_tf_distributed(mode, worker_names='worker', ps_names='ps'):
+    workers = env_value('{}_NODES'.format(worker_names.upper()),'')
+    ps = env_value('{}_NODES'.format(ps_names.upper()),'')
     ps_spec = ps.split(',')
     worker_spec = workers.split(',')
     offsets = {}
     for i, w in enumerate(worker_spec):
         if not w in offsets:
             offsets[w] = i
-    task_index = int(os.environ.get('REPLICA_INDEX', '0'))
+    task_index = int(env_value('REPLICA_INDEX', '0'))
 
     cluster = {'chief': [worker_spec[0]] if len(worker_spec) > 0 else [],
                'ps': ps_spec,
@@ -185,7 +185,7 @@ def setup_tf_distributed(mode, worker_names='worker', ps_names='ps', port=2222):
     elif mode == 'ps':
         task = {'type': 'ps', 'index': task_index}
     elif mode == 'eval':
-        if len(cluster['chief']) < 1 or len(cluster['ps'] < 1):
+        if len(cluster['chief']) < 1 or len(cluster['ps']) < 1:
             cluster = {'chief': ['fake_worker1:2222'], 'ps': ['fake_ps:2222'], 'worker': ['fake_worker2:2222']}
         task = {'type': 'evaluator', 'index': task_index}
     else:
@@ -194,5 +194,4 @@ def setup_tf_distributed(mode, worker_names='worker', ps_names='ps', port=2222):
     tf_config = json.dumps({
         'cluster': cluster,
         'task': task})
-    os.environ['TF_CONFIG'] = tf_config
-    print(tf_config)
+    return tf_config

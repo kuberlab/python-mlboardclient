@@ -183,7 +183,7 @@ def setup_tf_distributed(mode, worker_names='worker', ps_names='ps', no_chief=Fa
 
     if mode == 'worker':
         if no_chief:
-            task = {'type': 'worker' if task_index>0 else 'master', 'index': task_index}
+            task = {'type': 'worker' if task_index > 0 else 'master', 'index': task_index}
         elif task_index == 0:
             task = {'type': 'chief', 'index': 0}
         else:

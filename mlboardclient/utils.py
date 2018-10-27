@@ -197,9 +197,13 @@ def setup_tf_distributed(mode, worker_names='worker', ps_names='ps', no_chief=Fa
     else:
         RuntimeError('Supported mode (worker, ps, eval)')
 
-    tf_config = json.dumps({
+    tf_config = {
         'cluster': cluster,
-        'task': task})
+        'task': task}
+
     if no_chief:
         tf_config['environment'] = 'cloud'
+
+    tf_config = json.dumps(tf_config)
+
     return tf_config

@@ -162,9 +162,9 @@ def env_value(name, default_value=None):
         return val
 
 
-def setup_tf_distributed(mode, worker_names='worker', ps_names='ps'):
-    workers = env_value('{}_NODES'.format(worker_names.upper()),'')
-    ps = env_value('{}_NODES'.format(ps_names.upper()),'')
+def setup_tf_distributed(mode, worker_names='worker', ps_names='ps', no_chief=False):
+    workers = env_value('{}_NODES'.format(worker_names.upper()), '')
+    ps = env_value('{}_NODES'.format(ps_names.upper()), '')
     ps_spec = ps.split(',')
     worker_spec = workers.split(',')
     offsets = {}
@@ -173,12 +173,18 @@ def setup_tf_distributed(mode, worker_names='worker', ps_names='ps'):
             offsets[w] = i
     task_index = int(env_value('REPLICA_INDEX', '0'))
 
-    cluster = {'chief': [worker_spec[0]] if len(worker_spec) > 0 else [],
-               'ps': ps_spec,
-               'worker': worker_spec[1:] if len(worker_spec) > 1 else []}
+    if no_chief:
+        cluster = {'ps': ps_spec,
+                   'worker': worker_spec}
+    else:
+        cluster = {'chief': [worker_spec[0]] if len(worker_spec) > 0 else [],
+                   'ps': ps_spec,
+                   'worker': worker_spec[1:] if len(worker_spec) > 1 else []}
 
     if mode == 'worker':
-        if task_index == 0:
+        if no_chief:
+            task = {'type': 'worker', 'index': task_index}
+        elif task_index == 0:
             task = {'type': 'chief', 'index': 0}
         else:
             task = {'type': 'worker', 'index': task_index - 1}

@@ -200,4 +200,6 @@ def setup_tf_distributed(mode, worker_names='worker', ps_names='ps', no_chief=Fa
     tf_config = json.dumps({
         'cluster': cluster,
         'task': task})
+    if no_chief:
+        tf_config['environment'] = 'cloud'
     return tf_config

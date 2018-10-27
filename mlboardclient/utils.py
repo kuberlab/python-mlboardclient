@@ -175,7 +175,7 @@ def setup_tf_distributed(mode, worker_names='worker', ps_names='ps'):
 
     cluster = {'chief': [worker_spec[0]] if len(worker_spec) > 0 else [],
                'ps': ps_spec,
-               'worker': [worker_spec[1:]] if len(worker_spec) > 1 else []}
+               'worker': worker_spec[1:] if len(worker_spec) > 1 else []}
 
     if mode == 'worker':
         if task_index == 0:

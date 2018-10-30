@@ -26,8 +26,5 @@ except ImportError:
 
 setuptools.setup(
     setup_requires=['pbr>=2.0.0'],
-    pbr=True,
-    entry_points = {
-        'console_scripts': ['tf_conf=mlboardclient.tf_conf:main'],
-    }
+    pbr=True
 )

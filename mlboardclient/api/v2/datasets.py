@@ -52,7 +52,7 @@ class DatasetsManager(base.ResourceManager):
         )
 
     def list(self, workspace, type='dataset'):
-        cmd = ['dataset-list', workspace]
+        cmd = ['list', workspace]
         cmd += ['--type', type]
         out, err = self._run_kdataset(*cmd)
         # DATASETS:
@@ -62,7 +62,7 @@ class DatasetsManager(base.ResourceManager):
         return out.split('\n')[1:-1]
 
     def delete(self, workspace, name, type='dataset'):
-        cmd = ['dataset-delete', workspace, name]
+        cmd = ['delete', workspace, name]
         cmd += ['--type', type]
         out, err = self._run_kdataset('dataset-delete', workspace, name)
         print(out)

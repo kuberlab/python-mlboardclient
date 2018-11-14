@@ -66,8 +66,36 @@ class Client(object):
             task_name=task_name, build_id=build_id
         )
 
+    def _get_app_id(self):
+        if not self.ctx.workspace_id:
+            workspace_id = os.environ.get('WORKSPACE_ID')
+        else:
+            workspace_id = self.ctx.workspace_id
+
+        if workspace_id and self._get_project_name():
+            return '{}-{}'.format(workspace_id, self._get_project_name())
+
+        return None
+
+    def _get_project_name(self):
+        if not self.ctx.project_name:
+            project_name = os.environ.get('PROJECT_NAME')
+        else:
+            project_name = self.ctx.workspace
+
+        return project_name
+
+    def _get_serving_spec(self, app_id):
+        app = self.apps.get(app_id)
+        servings = app.servings
+        if len(servings) == 0:
+            return
+
+        serving = servings[0]
+        return serving.config
+
     def model_upload(self, model_name, version, path,
-                     workspace=None, auto_create=True):
+                     workspace=None, auto_create=True, spec=None):
         if not workspace:
             if not self.ctx.workspace:
                 workspace = os.environ.get('WORKSPACE_NAME')
@@ -77,6 +105,10 @@ class Client(object):
             if not workspace:
                 raise RuntimeError('workspace required')
 
+        app_id = self._get_app_id()
+        if not spec and app_id:
+            spec = self._get_serving_spec(app_id)
+
         self.datasets.push(
             workspace,
             model_name,
@@ -84,4 +116,5 @@ class Client(object):
             path,
             type='model',
             create=auto_create,
+            spec=spec,
         )

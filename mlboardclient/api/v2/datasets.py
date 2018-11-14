@@ -1,5 +1,7 @@
+import json
 import logging
 from os import path
+import tempfile
 
 from mlboardclient.api import base
 from mlboardclient import utils
@@ -32,7 +34,7 @@ class DatasetsManager(base.ResourceManager):
 
     def push(self, workspace, name, version, from_dir,
              type='dataset', create=False, publish=False, force=False,
-             chunk_size=None, concurrency=None):
+             chunk_size=None, concurrency=None, spec=None):
         cmd = ['push', workspace, '%s:%s' % (name, version)]
         if force:
             cmd += ['--force']
@@ -44,6 +46,17 @@ class DatasetsManager(base.ResourceManager):
             cmd += ['--chunk-size', str(chunk_size)]
         if concurrency:
             cmd += ['--concurrency', str(concurrency)]
+        if spec:
+            _, temp = tempfile.mkstemp()
+            if isinstance(spec, dict):
+                spec_data = json.dumps(spec)
+            else:
+                spec_data = spec
+            with open(temp, 'w') as f:
+                f.write(spec_data)
+
+            # Pass spec temp file location
+            cmd += ['--spec', temp]
 
         cmd += ['--type', type]
 

@@ -72,7 +72,7 @@ class DatasetsManager(base.ResourceManager):
         # dataset1
         # dataset2
         # ...
-        return out.split('\n')[1:-1]
+        return out.decode().split('\n')[1:-1]
 
     def delete(self, workspace, name, type='dataset'):
         cmd = ['delete', workspace, name]
@@ -89,22 +89,31 @@ class DatasetsManager(base.ResourceManager):
         # 1.0.1    34.042K
         # ...
         versions = []
-        lines = out.split('\n')
+        lines = out.decode().split('\n')
         for l in lines[1:-1]:
             splitted = l.split()
-            if len(splitted) != 4:
+            if len(splitted) < 4:
                 raise RuntimeError(
                     'Wrong dataset client/server version. Please update'
                 )
 
             v = splitted[0]
             size = splitted[1]
-            versions.append({'version': v, 'size': size})
+            data = {'version': v, 'size': size}
+            if len(splitted) > 3:
+                created = splitted[2:4]
+                data['created'] = ' '.join(created)
+
+            if len(splitted) > 5:
+                updated = splitted[4:6]
+                data['updated'] = ' '.join(updated)
+
+            versions.append(data)
 
         return versions
 
     def version_delete(self, workspace, name, version, type='dataset'):
-        cmd = ['version-delete', workspace, '%s:%s' %(name, version)]
+        cmd = ['version-delete', workspace, '%s:%s' % (name, version)]
         cmd += ['--type', type]
         out, err = self._run_kdataset(*cmd)
         print(out)

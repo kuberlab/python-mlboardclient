@@ -30,7 +30,7 @@ class DatasetsManager(base.ResourceManager):
         cmd += ['--type', type]
 
         out, err = self._run_kdataset(*cmd, dirname=to_dir, timeout=1800)
-        print(out)
+        print(out.decode())
 
     def push(self, workspace, name, version, from_dir,
              type='dataset', create=False, publish=False, force=False,
@@ -77,8 +77,8 @@ class DatasetsManager(base.ResourceManager):
     def delete(self, workspace, name, type='dataset'):
         cmd = ['delete', workspace, name]
         cmd += ['--type', type]
-        out, err = self._run_kdataset('dataset-delete', workspace, name)
-        print(out)
+        out, err = self._run_kdataset(*cmd)
+        print(out.decode())
 
     def version_list(self, workspace, name, type='dataset'):
         cmd = ['version-list', workspace, name]
@@ -116,7 +116,7 @@ class DatasetsManager(base.ResourceManager):
         cmd = ['version-delete', workspace, '%s:%s' % (name, version)]
         cmd += ['--type', type]
         out, err = self._run_kdataset(*cmd)
-        print(out)
+        print(out.decode())
 
     def _run_kdataset(self, *args, **options):
         out, err, code = utils.execute_command(

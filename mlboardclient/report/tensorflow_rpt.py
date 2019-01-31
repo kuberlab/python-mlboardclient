@@ -74,6 +74,7 @@ class MlBoardReporter(session_run_hook.SessionRunHook):
 
         if self._mlboard is not None:
             if self._generate and (self._next_step is not None):
+                self._timer.update_last_triggered_step(global_step)
                 rpt = {}
                 for k,v in run_values.results.items():
                     v = convert(v)

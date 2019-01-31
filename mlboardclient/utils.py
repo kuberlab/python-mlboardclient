@@ -201,3 +201,4 @@ def setup_tf_distributed(mode, worker_names='worker', ps_names='ps', chief_name=
     tf_config = json.dumps(tf_config)
 
     return tf_config
+

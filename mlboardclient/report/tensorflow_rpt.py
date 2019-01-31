@@ -15,7 +15,7 @@ class MlBoardReporter(session_run_hook.SessionRunHook):
         try:
             from mlboardclient.api import client
         except ImportError:
-            print("Can't find mlboardclient.api")
+            tf.logging.warning("Can't find mlboardclient.api")
             client = None
         mlboard = None
         if client:
@@ -23,7 +23,7 @@ class MlBoardReporter(session_run_hook.SessionRunHook):
             try:
                 mlboard.apps.get()
             except Exception:
-                print("Can't init mlboard env")
+                tf.logging.warning("Can't init mlboard env")
                 mlboard = None
 
         self._mlboard = mlboard
@@ -59,8 +59,10 @@ class MlBoardReporter(session_run_hook.SessionRunHook):
                 for k,v in run_values.results.items():
                     rpt[k] = v
                 if self._rpt is not None:
+                    tf.logging.info("Generate report doc")
                     rpt['#documents.report.html'] = self._rpt.generate()
                 if len(rpt)>0:
+                    tf.logging.info("Submit job info")
                     self._mlboard.update_task_info(rpt)
         self._next_step = global_step + 1
 

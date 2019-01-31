@@ -4,8 +4,6 @@ import json
 import logging
 import time
 
-from bayes_opt import bayesian_optimization as bayes
-
 from mlboardclient.api.v2 import executor
 
 
@@ -17,6 +15,12 @@ except ImportError as e:
     LOG.warning(e)
     skopt = None
     space = None
+try:
+    from bayes_opt import bayesian_optimization as bayes
+except ImportError as e:
+    LOG.warning(e)
+    bayes = None
+
 
 PARAM_SEPARATOR = '|'
 

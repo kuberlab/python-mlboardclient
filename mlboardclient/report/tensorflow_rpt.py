@@ -2,14 +2,32 @@ from tensorflow.python.training import session_run_hook
 from tensorflow.python.training import training_util
 from tensorflow.python.training.session_run_hook import SessionRunArgs
 import tensorflow as tf
-from  mlboardclient.report.tensorlogs import Report
+from mlboardclient.report.tensorlogs import Report
+import numpy as np
 
+
+def convert(o):
+    if isinstance(o, np.int64): return int(o)
+    if isinstance(o, np.int32): return int(o)
+    if isinstance(o, np.int): return int(o)
+    if isinstance(o, np.float32): return float(o)
+    if isinstance(o, np.float64): return float(o)
+    if isinstance(o, np.float): return float(o)
+    if isinstance(o, tf.int64): return int(o)
+    if isinstance(o, tf.int32): return int(o)
+    if isinstance(o, tf.int): return int(o)
+    if isinstance(o, tf.float32): return float(o)
+    if isinstance(o, tf.float64): return float(o)
+    if isinstance(o, tf.float): return float(o)
+    return None
 
 class MlBoardReporter(session_run_hook.SessionRunHook):
-    def __init__(self,checkpoint_dir,tensors=[],submit_summary=True,every_steps=None,every_n_secs=60):
+    def __init__(self,checkpoint_dir,tensors={},submit_summary=True,max_number_images=1,every_steps=None,every_n_secs=60):
+        if every_steps is not None:
+            every_n_secs = None
         self._timer = tf.train.SecondOrStepTimer(every_steps=every_steps,every_secs=every_n_secs)
         if submit_summary:
-            self._rpt = Report(checkpoint_dir)
+            self._rpt = Report(checkpoint_dir,max_number_images=max_number_images)
         else:
             self._rpt = None
         try:
@@ -28,6 +46,7 @@ class MlBoardReporter(session_run_hook.SessionRunHook):
 
         self._mlboard = mlboard
         self._tensors = tensors
+        self._most_recent_step = 0
 
     def begin(self):
         self._next_step = None
@@ -38,8 +57,8 @@ class MlBoardReporter(session_run_hook.SessionRunHook):
 
     def before_run(self, run_context):  # pylint: disable=unused-argument
         requests = {"global_step": self._global_step_tensor}
-        for t in self._tensors:
-            requests[t.name] = t
+        for n,t in self._tensors.items():
+            requests[n] = t
         self._generate = (
                 self._next_step is None or
                 self._timer.should_trigger_for_step(self._next_step))
@@ -57,12 +76,17 @@ class MlBoardReporter(session_run_hook.SessionRunHook):
             if self._generate and (self._next_step is not None):
                 rpt = {}
                 for k,v in run_values.results.items():
-                    rpt[k] = v
+                    v = convert(v)
+                    if v is not None:
+                        rpt[k] = v
                 if self._rpt is not None:
-                    tf.logging.info("Generate report doc")
-                    rpt['#documents.report.html'] = self._rpt.generate()
+                    self._rpt.reload()
+                    most_recent_step = self._rpt.most_recent_step()
+                    if most_recent_step>self._most_recent_step:
+                        rpt['#documents.report.html'] = self._rpt.generate(reload=False)
+                        self._most_recent_step = most_recent_step
+
                 if len(rpt)>0:
-                    tf.logging.info("Submit job info")
                     self._mlboard.update_task_info(rpt)
         self._next_step = global_step + 1
 

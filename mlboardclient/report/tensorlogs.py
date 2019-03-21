@@ -1,9 +1,10 @@
-import numpy as np
-from tensorboard.backend.event_processing.event_accumulator import EventAccumulator
+import base64
+import io
 
 import matplotlib.pyplot as plt
-import io
-import base64
+import numpy as np
+from tensorboard.backend.event_processing import event_accumulator as ea
+
 
 COMPRESSED_HISTOGRAMS = 'distributions'
 HISTOGRAMS = 'histograms'
@@ -31,9 +32,9 @@ def image_name(name):
         return name, 0
     try:
         n = int(p[-1])
-        return (name, n)
+        return name, n
     except:
-        return (name, 0)
+        return name, 0
 
 
 def is_outlier(points, thresh=3.5):
@@ -75,7 +76,7 @@ class Report(object):
         self._size_guidance = size_guidance or DEFAULT_SIZE_GUIDANCE
         if max_number_images == 0:
             self._size_guidance[IMAGES] = 0
-        self.event_acc = EventAccumulator(path, self._size_guidance)
+        self.event_acc = ea.EventAccumulator(path, self._size_guidance)
         self.max_number_images = max_number_images
 
     def reload(self):
@@ -116,8 +117,9 @@ class Report(object):
                 img = self.plot_image(i)
                 if img is not None:
                     graphs.append(
-                        '<figure><img src="data:image/png;base64,{}"/><figcaption>{}</figcaption></figure>'.format(img,
-                                                                                                               name))
+                        '<figure><img src="data:image/png;base64,{}"/>'
+                        '<figcaption>{}</figcaption></figure>'.format(img, name)
+                    )
         return '<html>{}</html>'.format('\n'.join(graphs))
 
     def plot_image(self, name):

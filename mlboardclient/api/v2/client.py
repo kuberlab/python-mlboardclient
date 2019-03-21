@@ -1,4 +1,4 @@
-
+import logging
 import os
 
 import six
@@ -10,9 +10,9 @@ from mlboardclient.api.v2 import datasets
 from mlboardclient.api.v2 import keys
 from mlboardclient.api.v2 import servings
 from mlboardclient.api.v2 import tasks
-from mlboardclient import utils
 
 
+LOG = logging.getLogger(__name__)
 DEFAULT_BASE_URL = 'http://mlboard-v2.kuberlab:8082/api/v2'
 
 
@@ -55,16 +55,22 @@ class Client(object):
         self.datasets = datasets.DatasetsManager(http_client)
 
     def update_task_info(self, data, app_name=None,
-                         task_name=None, build_id=None):
+                         task_name=None, build_id=None, fail_on_error=False):
         # Alias for self.tasks.update_task_info
 
         if self.app_id and not app_name:
             app_name = self.app_id
 
-        return self.tasks.update_task_info(
-            data, app_name=app_name,
-            task_name=task_name, build_id=build_id
-        )
+        try:
+            return self.tasks.update_task_info(
+                data, app_name=app_name,
+                task_name=task_name, build_id=build_id,
+            )
+        except Exception as e:
+            if fail_on_error:
+                raise e
+            else:
+                LOG.warning(e)
 
     def _get_app_id(self):
         if not self.ctx.workspace_id:

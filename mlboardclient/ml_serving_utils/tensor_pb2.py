@@ -13,9 +13,9 @@ from google.protobuf import descriptor_pb2
 _sym_db = _symbol_database.Default()
 
 
-from ml_serving import resource_handle_pb2 as resource__handle__pb2
-from ml_serving import tensor_shape_pb2 as tensor__shape__pb2
-from ml_serving import types_pb2 as types__pb2
+from mlboardclient.ml_serving_utils import resource_handle_pb2 as resource__handle__pb2
+from mlboardclient.ml_serving_utils import tensor_shape_pb2 as tensor__shape__pb2
+from mlboardclient.ml_serving_utils import types_pb2 as types__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(

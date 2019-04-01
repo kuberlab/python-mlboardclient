@@ -10,3 +10,4 @@ eventlet
 bayesian-optimization
 scikit-optimize
 grpcio>=1.17.1
+grpcio-tools>=1.17.1

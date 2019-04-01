@@ -9,3 +9,4 @@ subprocess32; python_version < '3'
 eventlet
 bayesian-optimization
 scikit-optimize
+grpcio>=1.17.1

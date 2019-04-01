@@ -7,6 +7,7 @@ import yaml
 from mlboardclient import api
 from mlboardclient.api import base
 from mlboardclient import utils
+from mlboardclient.ml_serving_utils import helpers
 
 urlparse = six.moves.urllib.parse
 ws_pattern = re.compile('^[0-9]+-')
@@ -131,7 +132,7 @@ class ServingManager(base.ResourceManager):
 
         self._delete('/apps/%s/tasks/%s/%s/serve' % (app, task, build))
 
-    def call(self, serving_name, model_name, data,
+    def call(self, serving_name, data, model_name=None,
              signature=None, version=None, port=None, namespace=None,
              serving_address=None):
         """Call specific serving with given data.
@@ -142,6 +143,10 @@ class ServingManager(base.ResourceManager):
         :param signature:
         :param version: model_version
         :param port: Serving port (int)
+        :param serving_address: full serving address host. Either
+           serving_address or serving_name + namespace must be supplied.
+           namespace can be inserted automatically if using mlboardclient
+           from Kibernetika.AI environment.
         :param data: Should be in the form:
         {
           "features": [  # Required if not inputs
@@ -177,11 +182,17 @@ class ServingManager(base.ResourceManager):
                         continue
 
                     if v.get('dtype') == api.DT_STRING:
-                        v['data'] = base64.encodestring(
-                            v.get('data', '')).decode()
+                        if isinstance(v['data'], list):
+                            for i in range(len(v['data'])):
+                                v['data'][i] = base64.encodebytes(
+                                    v.get('data', '')).decode()
+                        else:
+                            v['data'] = base64.encodebytes(
+                                v.get('data', '')).decode()
 
         if not namespace and not serving_address:
             raise RuntimeError('namespace parameter required.')
+
         elif serving_address:
             serving_addr = serving_address
         else:
@@ -201,3 +212,13 @@ class ServingManager(base.ResourceManager):
         )
         # Need extract json?
         return resp
+
+    @staticmethod
+    def call_grpc(data, addr):
+        """Calls serving directly using gRPC protocol.
+
+        :param data: Inputs dict in form {'key': <numpy-array>}
+        :param addr: Serving address in form 'host:port'
+        :return: outputs dict: {'key': <numpy-array>}
+        """
+        return helpers.predict_grpc(data, addr)

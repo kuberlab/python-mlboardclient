@@ -7,7 +7,14 @@ import yaml
 from mlboardclient import api
 from mlboardclient.api import base
 from mlboardclient import utils
-from mlboardclient.ml_serving_utils import helpers
+try:
+    from mlboardclient.ml_serving_utils import helpers
+except ImportError:
+    def not_defined(*args, **kwargs):
+        raise ImportError(
+            'Module mlboardclient.ml_serving_utils.helpers not imported.'
+        )
+    helpers = type('not_defined', (object,), {'predict_grpc': not_defined})
 
 urlparse = six.moves.urllib.parse
 ws_pattern = re.compile('^[0-9]+-')

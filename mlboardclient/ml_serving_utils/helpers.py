@@ -1,4 +1,10 @@
-import grpc
+import importlib
+
+try:
+    grpc = importlib.import_module('grpc')
+except ModuleNotFoundError:
+    grpc = None
+
 from mlboardclient.ml_serving_utils import predict_pb2
 from mlboardclient.ml_serving_utils import predict_pb2_grpc
 from mlboardclient.ml_serving_utils import tensor_util

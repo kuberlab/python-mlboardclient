@@ -194,8 +194,12 @@ class ServingManager(base.ResourceManager):
                                 v['data'][i] = base64.encodebytes(
                                     v.get('data', '')).decode()
                         else:
-                            v['data'] = base64.encodebytes(
-                                v.get('data', '')).decode()
+                            if isinstance(v['data'], bytes):
+                                v['data'] = base64.encodebytes(
+                                    v.get('data', '')).decode()
+                            else:
+                                v['data'] = base64.b64encode(
+                                    v.get('data', '').encode()).decode()
 
         if not namespace and not serving_address:
             raise RuntimeError('namespace parameter required.')

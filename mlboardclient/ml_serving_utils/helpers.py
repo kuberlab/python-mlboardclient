@@ -20,7 +20,7 @@ opts = [
 def get_stub(addr):
     channel = grpc.insecure_channel(addr, options=opts)
 
-    stub = predict_pb2_grpc.PredictServiceStub(channel)
+    stub = predict_pb2_grpc.PredictionServiceStub(channel)
     return stub
 
 
@@ -31,7 +31,7 @@ def predict_grpc(data, serv_addr):
         inputs[k] = tensor_proto
 
     with grpc.insecure_channel(serv_addr, options=opts) as channel:
-        stub = predict_pb2_grpc.PredictServiceStub(channel)
+        stub = predict_pb2_grpc.PredictionServiceStub(channel)
         response = stub.Predict(predict_pb2.PredictRequest(inputs=inputs))
 
     outputs = {}
